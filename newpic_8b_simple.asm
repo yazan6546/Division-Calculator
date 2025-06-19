@@ -1,87 +1,104 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;Copyright (c) 2013 Manolis Agkopian			      ;
-;See the file LICENCE for copying permission.		      ;
-;							      ;
-;THIS IS JUST SOME TEST CODE THA USES THE LCD DRIVER TO PRINT ;
-;THE NUMBERS FROM 0 TO 9 TO THE LCD WITH A DELAY              ;
+; Displays "Welcome to" and "Division!" on LCD using lookup
+; Strings stored in program memory using DT
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	list        p=16f877a           ; Tell assembler which PIC we're using
-    #include    <p16f877a.inc>      ; Include register definition
-    INCLUDE <LCD_DRIVER.INC>
+    LIST        p=16f877a
+    #include    <p16f877a.inc>
+    INCLUDE     <LCD_DRIVER.INC>
 
-    
-	__CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
+    __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
+;===============================================================================
+; Variables
+;===============================================================================
     cblock 0x20
         INDEX
         TEMP_CHAR
     endc
 
-; Reset Vector
-;******************************************************************************
+;===============================================================================
+; Reset and Interrupt Vectors
+;===============================================================================
     ORG 0x00
-    goto setup        ; Jump to main code on reset    ORG 0x100
-    ; String lookup tables
-welcome_str:
-    addwf   PCL, f
-    dt      "Welcome to", 0
-
-division_str:
-    addwf   PCL, f  
-    dt      "Division!", 0
+    goto setup             ; Reset vector
 
     ORG 0x04
-;   goto isr         ; Jump to interrupt routine
+    retfie                 ; Interrupt vector (not used)
 
-ORG 0x020
+;===============================================================================
+; Main Code
+;===============================================================================
+    ORG 0x020              ; Start of main program
+
 setup:
-    CALL LCD_INIT ;FIRST OF ALL WE HAVE TO INITIALIZE LCD
-    CALL LCD_L1 ;MOVE CURSOR TO 1ST ROW
-    CALL print_welcome ; Print welcome message
-    CALL LCD_L2 ; Move cursor to 2nd row    
-    CALL print_division ; Print division message
+    call LCD_INIT          ; Initialize LCD
 
-    ; Infinite loop to keep the program running    goto $
-    goto $ ; Stay here forever
+    call LCD_L1            ; Move cursor to 1st line
+    call print_welcome     ; Print "Welcome to"
 
+    call LCD_L2            ; Move cursor to 2nd line
+    call print_division    ; Print "Division!"
+
+    goto $                 ; Stay here forever
+
+;===============================================================================
+; Print "Welcome to"
+;===============================================================================
 print_welcome:
     clrf INDEX
-read_loop:
-    movf INDEX, W        ; Load current index
-    call welcome_str     ; Get character at index (via retlw)
-    ; Check if it's the null terminator
-    movwf TEMP_CHAR     
-    movf TEMP_CHAR, f    ; Test TEMP_CHAR
-    btfss STATUS, Z      ; Skip if zero (end of string)
-    goto continue        ; If W != 0, continue processing
-    return               ; Return if we reached the end of the string
+    movlw HIGH(welcome_str)   ; Set PCLATH for correct table page
+    movwf PCLATH
 
-    ; W now has the character
-    ; CALL DEL250          ; DO 250MS DELAY, JUST FOR THE EFFECT
-    
+print_welcome_loop:
+    movf INDEX, W
+    call welcome_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
+    goto continue_welcome
+    clrf PCLATH
+    return
 
-continue: 
-    CALL LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
-    incf INDEX, f        ; Move to next char
-    goto read_loop
+continue_welcome:
+    call LCD_CHAR
+    incf INDEX, F
+    goto print_welcome_loop
 
+;===============================================================================
+; Print "Division!"
+;===============================================================================
 print_division:
     clrf INDEX
-read_loop1:
-    movf INDEX, W        ; Load current index    call division_str    ; Get character at index (via retlw)
-    
-    call division_str     ; Get character at index (via retlw)
-    ; W now has the character
-    movwf TEMP_CHAR     
-    movf TEMP_CHAR, f    ; Test TEMP_CHAR
-    btfss STATUS, Z      ; Skip if zero (end of string)
-    goto continue1       ; If W != 0, continue processing
-    return               ; Return if we reached the end of the string
+    movlw HIGH(division_str)  ; Set PCLATH for correct table page
+    movwf PCLATH
 
-continue1:
-    call LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
-    incf INDEX, f        ; Move to next char
-    goto read_loop1
+print_division_loop:
+    movf INDEX, W
+    call division_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z
+    goto continue_division
+    clrf PCLATH
+    return
+
+continue_division:
+    call LCD_CHAR
+    incf INDEX, F
+    goto print_division_loop
+
+;===============================================================================
+; String Tables (retlw-based lookup)
+;===============================================================================
+    ORG 0x200                 ; Place strings far from code & vectors
+
+welcome_str:
+    addwf PCL, F
+    DT "Welcome to", 0
+
+division_str:
+    addwf PCL, F
+    DT "Division!", 0
 
     END
