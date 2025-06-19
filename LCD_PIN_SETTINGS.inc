@@ -11,7 +11,7 @@
 ;PB7 -> D7 | PB6 -> D6 | PB5 -> D5 | PB4 -> D4 | PB3 -> E | PB2 -> RS           ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-LCD_PORT EQU PORTB
-LCD_TRIS EQU TRISB
+LCD_PORT EQU PORTD
+LCD_TRIS EQU TRISD
 LCD_RS EQU 0x02
 LCD_E EQU 0x03

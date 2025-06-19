@@ -1,6 +1,5 @@
 _build
 build
-nbproject
 out
 .vscode
 cmake
