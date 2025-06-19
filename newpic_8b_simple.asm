@@ -29,7 +29,7 @@ welcome_str:
 
 division_str:
     addwf   PCL, f  
-    dt      "Division by 0", 0
+    dt      "Division!", 0
 
     ORG 0x04
 ;   goto isr         ; Jump to interrupt routine
