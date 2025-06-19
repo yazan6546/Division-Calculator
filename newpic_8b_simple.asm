@@ -33,7 +33,23 @@
     ORG 0x020              ; Start of main program
 
 setup:
+    call LCD_INIT          ; Initialize LCD
     call print_first_message ; Print initial messages
+
+    call DEL250
+    call DEL250
+    call DEL250
+    call DEL250
+    call DEL250
+    call DEL250
+    call DEL250
+    call DEL250
+
+    call LCD_CLR          ; Clear LCD
+
+    call print_number_message ; Print "Number 1"
+
+    call LCD_L2            ; Move cursor to 2nd line
     goto $                 ; Stay here forever
 
 ;===============================================================================
@@ -86,7 +102,6 @@ continue_division:
 
 
 print_first_message:
-    call LCD_INIT          ; Initialize LCD
     movlw 4        
     movwf loop_counter   ; Initialize loop counter
     loop_message:
@@ -103,6 +118,27 @@ print_first_message:
 
     return
 
+print_number_message:
+    clrf INDEX
+    movlw HIGH(welcome_str)   ; Set PCLATH for correct table page
+    movwf PCLATH
+
+print_number_loop:
+    movf INDEX, W
+    call number_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
+    goto continue_number
+    clrf PCLATH
+    
+    return
+
+continue_number:
+    call LCD_CHAR
+    incf INDEX, F
+    goto print_number_loop
+
 ;===============================================================================
 ; String Tables (retlw-based lookup)
 ;===============================================================================
@@ -115,5 +151,9 @@ welcome_str:
 division_str:
     addwf PCL, F
     DT "Division!", 0
+
+number_str:
+    addwf PCL, F
+    DT "Number 1", 0
 
     END
