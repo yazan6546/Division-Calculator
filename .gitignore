@@ -1,0 +1,8 @@
+_build
+build
+nbproject
+out
+.vscode
+cmake
+dist
+debug
