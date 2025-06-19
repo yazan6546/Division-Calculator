@@ -5,3 +5,10 @@ out
 cmake
 dist
 debug
+proteus/Backup*
+proteus/Cache*
+proteus/Logs*
+proteus/Output*
+proteus/Temp*
+proteus/Tests*
+proteus/realtime.pdsprj.*
