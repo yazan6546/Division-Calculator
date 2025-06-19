@@ -69,6 +69,9 @@ LCD_INIT:
 	MOVLW 0x0C ;TURN ON DISPLAY / CURSOR
 	CALL LCDINS
 
+	movlw 0x0F     ; Display ON, Cursor ON, Blink ON
+    call LCDINS   ; Send command to LCD
+
 	CALL LCD_CLR ;CLEAR DISPLAY RAM
 	RETURN
 
