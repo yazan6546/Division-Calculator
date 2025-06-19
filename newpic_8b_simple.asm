@@ -15,6 +15,7 @@
     cblock 0x20
         INDEX
         TEMP_CHAR
+        loop_counter
     endc
 
 ;===============================================================================
@@ -32,14 +33,7 @@
     ORG 0x020              ; Start of main program
 
 setup:
-    call LCD_INIT          ; Initialize LCD
-
-    call LCD_L1            ; Move cursor to 1st line
-    call print_welcome     ; Print "Welcome to"
-
-    call LCD_L2            ; Move cursor to 2nd line
-    call print_division    ; Print "Division!"
-
+    call print_first_message ; Print initial messages
     goto $                 ; Stay here forever
 
 ;===============================================================================
@@ -58,6 +52,7 @@ print_welcome_loop:
     btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
     goto continue_welcome
     clrf PCLATH
+    
     return
 
 continue_welcome:
@@ -87,6 +82,26 @@ continue_division:
     call LCD_CHAR
     incf INDEX, F
     goto print_division_loop
+
+
+
+print_first_message:
+    call LCD_INIT          ; Initialize LCD
+    movlw 4        
+    movwf loop_counter   ; Initialize loop counter
+    loop_message:
+        call LCD_CLR           ; Clear LCD
+        call DEL100
+        call LCD_L1            ; Move cursor to 1st line
+        call print_welcome     ; Print "Welcome to"
+        call LCD_L2            ; Move cursor to 2nd line
+        call print_division    ; Print "Division!"
+        call DEL250
+        call DEL250 ; Delay for effect
+        decf loop_counter, F  ; Decrement loop counter
+        bnz loop_message       ; If loop_counter == 0, exit loop
+
+    return
 
 ;===============================================================================
 ; String Tables (retlw-based lookup)

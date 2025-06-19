@@ -15,12 +15,6 @@ LCD_CODE	code
 		LCDTEMP ;TEMP VAR FOR CHAR / INSRUCTION
 	ENDC
 
-welcome:
-	DT "Welcome to", 0 ;WELCOME MESSAGE FOR LCD
-division:
-	DT "Division", 0 ;DIVISION message
-
-		
 ;LCD INITIALIZATION (4 BIT MODE)
 LCD_INIT:
 
