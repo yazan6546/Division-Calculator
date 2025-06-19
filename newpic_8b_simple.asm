@@ -13,32 +13,73 @@
     
 	__CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
-CNT EQU 0x20 ;CHARACTER COUNTER
+    cblock 0x20
+        INDEX
+        TEMP_CHAR
+    endc
 
-	ORG 0x000
-	GOTO INIT ;INCLUDE THE LCD DRIVER AND GOTO INIT ROUTINE
-	
-INIT:
-	CALL LCD_INIT ;FIRST OF ALL WE HAVE TO INITIALIZE LCD
-	CLRF CNT ;CLEAR CHAR COUNTER
+; Reset Vector
+;******************************************************************************
+    ORG 0x00
+    goto setup        ; Jump to main code on reset    ORG 0x100
+    ; String lookup tables
+welcome_str:
+    addwf   PCL, f
+    dt      "Welcome to", 0
 
-MAIN:
-	MOVLW 0x30 ; CHAR '0' = 0x30
-	MOVWF CNT
-AGAIN:
-	MOVF CNT, W ;WE PASS THE ASCII CODE TO LCD_CHAR TROUGH W REG
-	CALL LCD_CHAR ;LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD, THE LCD uC WILL THEN AUTOINCREMENT THE CURSOR
-	CALL DEL250 ;DO 250MS DELAY, JUST FOR THE EFFECT
+division_str:
+    addwf   PCL, f  
+    dt      "Division by 0", 0
 
-	INCF CNT ;LOAD NEXT DIGIT
-	MOVLW 0x3A ;LAST DIGIT '9' = 0x39, NEXT VALUE 0x3A
-	XORWF CNT, W ;WHEN CNT = 0x3A, IT MEANS WE REACHED THE LAST DIGIT
-	BTFSS STATUS, Z
-	GOTO AGAIN
+    ORG 0x04
+;   goto isr         ; Jump to interrupt routine
 
-	CALL LCD_CLR ;CLEAR LCD
-	CALL LCD_L1 ;MOVE CURSOR TO 1ST ROW
-	CALL DEL250 ;DO 250MS DELAY
-	GOTO MAIN
-	
-	END
+ORG 0x020
+setup:
+    CALL LCD_INIT ;FIRST OF ALL WE HAVE TO INITIALIZE LCD
+    CALL LCD_L1 ;MOVE CURSOR TO 1ST ROW
+    CALL print_welcome ; Print welcome message
+    CALL LCD_L2 ; Move cursor to 2nd row    CALL print_division ; Print division message
+
+    ; Infinite loop to keep the program running    goto $
+
+print_welcome:
+    clrf INDEX
+read_loop:
+    movf INDEX, W        ; Load current index
+    call welcome_str     ; Get character at index (via retlw)
+
+    ; W now has the character
+    CALL LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
+    CALL DEL250          ; DO 250MS DELAY, JUST FOR THE EFFECT
+    ; Check if it's the null terminator
+    movwf TEMP_CHAR     
+    movf TEMP_CHAR, f    ; Test TEMP_CHAR
+    btfss STATUS, Z      ; Skip if zero (end of string)
+    goto continue        ; If W != 0, continue processing
+    return               ; Return if we reached the end of the string
+
+continue: 
+    incf INDEX, f        ; Move to next char
+    goto read_loop
+
+print_division:
+    clrf INDEX
+read_loop1:
+    movf INDEX, W        ; Load current index    call division_str    ; Get character at index (via retlw)
+
+    ; W now has the character
+    CALL LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
+    CALL DEL250          ; DO 250MS DELAY, JUST FOR THE EFFECT
+    ; Check if it's the null terminator
+    movwf TEMP_CHAR     
+    movf TEMP_CHAR, f    ; Test TEMP_CHAR
+    btfss STATUS, Z      ; Skip if zero (end of string)
+    goto continue1       ; If W != 0, continue processing
+    return               ; Return if we reached the end of the string
+
+continue1: 
+    incf INDEX, f        ; Move to next char
+    goto read_loop1
+
+    END
