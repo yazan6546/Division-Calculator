@@ -39,19 +39,17 @@ setup:
     CALL LCD_INIT ;FIRST OF ALL WE HAVE TO INITIALIZE LCD
     CALL LCD_L1 ;MOVE CURSOR TO 1ST ROW
     CALL print_welcome ; Print welcome message
-    CALL LCD_L2 ; Move cursor to 2nd row    CALL print_division ; Print division message
+    CALL LCD_L2 ; Move cursor to 2nd row    
+    CALL print_division ; Print division message
 
     ; Infinite loop to keep the program running    goto $
+    goto $ ; Stay here forever
 
 print_welcome:
     clrf INDEX
 read_loop:
     movf INDEX, W        ; Load current index
     call welcome_str     ; Get character at index (via retlw)
-
-    ; W now has the character
-    CALL LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
-    CALL DEL250          ; DO 250MS DELAY, JUST FOR THE EFFECT
     ; Check if it's the null terminator
     movwf TEMP_CHAR     
     movf TEMP_CHAR, f    ; Test TEMP_CHAR
@@ -59,7 +57,12 @@ read_loop:
     goto continue        ; If W != 0, continue processing
     return               ; Return if we reached the end of the string
 
+    ; W now has the character
+    ; CALL DEL250          ; DO 250MS DELAY, JUST FOR THE EFFECT
+    
+
 continue: 
+    CALL LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
     incf INDEX, f        ; Move to next char
     goto read_loop
 
@@ -67,18 +70,17 @@ print_division:
     clrf INDEX
 read_loop1:
     movf INDEX, W        ; Load current index    call division_str    ; Get character at index (via retlw)
-
+    
+    call division_str     ; Get character at index (via retlw)
     ; W now has the character
-    CALL LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
-    CALL DEL250          ; DO 250MS DELAY, JUST FOR THE EFFECT
-    ; Check if it's the null terminator
     movwf TEMP_CHAR     
     movf TEMP_CHAR, f    ; Test TEMP_CHAR
     btfss STATUS, Z      ; Skip if zero (end of string)
     goto continue1       ; If W != 0, continue processing
     return               ; Return if we reached the end of the string
 
-continue1: 
+continue1:
+    call LCD_CHAR        ; LCD_CHAR WRITES AN ASCII CODE CHAR TO THE LCD
     incf INDEX, f        ; Move to next char
     goto read_loop1
 
