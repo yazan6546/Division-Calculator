@@ -36,8 +36,7 @@
     ORG 0x020              ; Start of main program
 
 setup:
-    movlw 0x1
-    movwf button_pressed ; Initialize button pressed flag
+    clrf button_pressed ; Initialize button_pressed to 0
     call LCD_INIT          ; Initialize LCD
     call print_first_message ; Print initial messages
 
@@ -196,6 +195,10 @@ isr_handler:
 
     ; Handle button press
     incf button_pressed, F  ; Increment button pressed count
+    movlw D'10'                ; Check if button_pressed exceeds 9
+    xorwf button_pressed, W ; Compare with 10
+    btfsc STATUS, Z         ; If button_pressed < 10, continue
+    clrf button_pressed      ; Reset button_pressed to 0 if it exceeds 9
 
     call LCD_CLR            ; Clear LCD
     call print_number_message ; Print "Number 1"
