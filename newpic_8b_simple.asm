@@ -16,6 +16,9 @@
         INDEX
         TEMP_CHAR
         loop_counter
+        button_pressed
+        W_TEMP              ; For interrupt context save
+        STATUS_TEMP         ; For interrupt context save
     endc
 
 ;===============================================================================
@@ -33,7 +36,8 @@
     ORG 0x020              ; Start of main program
 
 setup:
-    call init_ports       ; Initialize ports and interrupts
+    movlw 0x1
+    movwf button_pressed ; Initialize button pressed flag
     call LCD_INIT          ; Initialize LCD
     call print_first_message ; Print initial messages
 
@@ -51,6 +55,9 @@ setup:
     call print_number_message ; Print "Number 1"
 
     call LCD_L2            ; Move cursor to 2nd line
+    call init_ports       ; Initialize ports and interrupts
+
+    call print_number ; Print the number in button_pressed
     goto $                 ; Stay here forever
 
 ;===============================================================================
@@ -124,58 +131,92 @@ print_number_message:
     movlw HIGH(welcome_str)   ; Set PCLATH for correct table page
     movwf PCLATH
 
-print_number_loop:
+print_number_message_loop:
     movf INDEX, W
     call number_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
     btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
-    goto continue_number
+    goto continue_number_message
     clrf PCLATH
     
     return
 
-continue_number:
+continue_number_message:
     call LCD_CHAR
     incf INDEX, F
-    goto print_number_loop
+    goto print_number_message_loop
+
+
+
+
+
+; 
+;===============================================================================
+; Print the number that is in button_pressed
+;===============================================================================
+
+print_number:
+    
+    movf button_pressed, W ; Get the number to print
+    call LCD_CHARD ; convert to ascii
+    CALL LCD_CHAR
+    return
 
 
 init_ports:
-
-    BANKSEL INTCON
-    ; Enable global and peripheral interrupts
-    bsf INTCON, GIE         ; Enable global interrupts
-    bsf INTCON, INTE        ; Enable external interrupt (RB0)
-    bcf INTCON, INTF       ; Clear external interrupt flag
-    bsf INTCON, PEIE        ; Enable peripheral interrupts
-
-    ; Set up ports
+    ; Initialize ports first
     BANKSEL TRISB 
-    bsf TRISB, 0 ; set RB0 as input (for button)
-    bcf TRISB, 1 ; set RB1 as output (for LED)
+    bsf TRISB, 0            ; Set RB0 as input (for button)
+    bcf TRISB, 1            ; Set RB1 as output (for LED)
 
+    ; Configure interrupt edge
     BANKSEL OPTION_REG
-    bcf OPTION_REG, INTEDG ; enable interrupt on falling edge
- 
+    bcf OPTION_REG, INTEDG  ; Enable interrupt on falling edge
+
+    ; Set up interrupts
+    BANKSEL INTCON
+    bcf INTCON, INTF        ; Clear external interrupt flag first
+    bsf INTCON, INTE        ; Enable external interrupt (RB0)
+    bsf INTCON, PEIE        ; Enable peripheral interrupts
+    bsf INTCON, GIE         ; Enable global interrupts (do this last)
+
+    BANKSEL 0               ; Return to bank 0
     return
 
 isr_handler:
+    ; Save context
+    movwf W_TEMP            ; Save W register
+    swapf STATUS, W         ; Swap STATUS to W
+    movwf STATUS_TEMP       ; Save STATUS
 
-    BANKSEL PORTB
+    ; Check which interrupt occurred
+    btfss INTCON, INTF      ; Check if external interrupt flag is set
+    goto end_isr            ; If not, exit
 
-    movf PORTB, W
-    xorlw 0x02          ; Bit 1 mask (RB1)
-    movwf PORTB         ; Toggle bit 1 (RB1)
+    ; Handle button press
+    incf button_pressed, F  ; Increment button pressed count
 
-    BANKSEL INTCON
+    call LCD_CLR            ; Clear LCD
+    call print_number_message ; Print "Number 1"
+    call LCD_L2            ; Move cursor to 2nd line
+    call print_number      ; Print the number in button_pressed
+
+    ; Clear interrupt flag
     bcf INTCON, INTF
-    retfie
+
+end_isr:
+    ; Restore context
+    swapf STATUS_TEMP, W    ; Restore STATUS
+    movwf STATUS
+    swapf W_TEMP, F         ; Restore W register
+    swapf W_TEMP, W
+    retfie                  ; Return from interrupt
 
 ;===============================================================================
 ; String Tables (retlw-based lookup)
 ;===============================================================================
-    ORG 0x200                 ; Place strings far from code & vectors
+    ORG 0x100                 ; Place strings at page boundary
 
 welcome_str:
     addwf PCL, F
