@@ -33,6 +33,7 @@
     ORG 0x020              ; Start of main program
 
 setup:
+    call init_ports       ; Initialize ports and interrupts
     call LCD_INIT          ; Initialize LCD
     call print_first_message ; Print initial messages
 
@@ -139,6 +140,26 @@ continue_number:
     incf INDEX, F
     goto print_number_loop
 
+
+init_ports:
+
+    BANKSEL INTCON
+    ; Enable global and peripheral interrupts
+    bsf INTCON, GIE         ; Enable global interrupts
+    bsf INTCON, INTE        ; Enable external interrupt (RB0)
+    bcf INTCON, INTF       ; Clear external interrupt flag
+    bsf INTCON, PEIE        ; Enable peripheral interrupts
+
+    ; Set up ports
+    BANKSEL TRISB
+    bsf TRISB, 0 ; set RB0 as input (for button)
+    bcf TRISB, 1 ; set RB1 as output (for LED)
+
+    BANKSEL OPTION_REG
+    bcf OPTION_REG, INTEDG ; enable interrupt on falling edge
+ 
+    return
+
 ;===============================================================================
 ; String Tables (retlw-based lookup)
 ;===============================================================================
@@ -157,3 +178,5 @@ number_str:
     DT "Number 1", 0
 
     END
+
+
