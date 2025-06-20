@@ -4,7 +4,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     LIST        p=16f877a
-    #include    <p16f877a.inc>
+    INCLUDE    <p16f877a.INC>
     INCLUDE     <LCD_DRIVER.INC>
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
@@ -25,7 +25,7 @@
     goto setup             ; Reset vector
 
     ORG 0x04
-    retfie                 ; Interrupt vector (not used)
+        goto isr_handler      ; Interrupt vector
 
 ;===============================================================================
 ; Main Code
@@ -151,7 +151,7 @@ init_ports:
     bsf INTCON, PEIE        ; Enable peripheral interrupts
 
     ; Set up ports
-    BANKSEL TRISB
+    BANKSEL TRISB 
     bsf TRISB, 0 ; set RB0 as input (for button)
     bcf TRISB, 1 ; set RB1 as output (for LED)
 
@@ -159,6 +159,18 @@ init_ports:
     bcf OPTION_REG, INTEDG ; enable interrupt on falling edge
  
     return
+
+isr_handler:
+
+    BANKSEL PORTB
+
+    movf PORTB, W
+    xorlw 0x02          ; Bit 1 mask (RB1)
+    movwf PORTB         ; Toggle bit 1 (RB1)
+
+    BANKSEL INTCON
+    bcf INTCON, INTF
+    retfie
 
 ;===============================================================================
 ; String Tables (retlw-based lookup)
