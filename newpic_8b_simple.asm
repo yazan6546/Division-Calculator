@@ -9,9 +9,23 @@
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
+
+;==========================
+; 1. RESET VECTOR
+;==========================
+RESET_VECT   CODE    0x0000         ; Reset vector
+    GOTO    setup
+
+; Interrupt vector at 0x0004
+INT_VECT     code    0x0004
+    goto    isr_handler
+
 ;===============================================================================
 ; Variables
 ;===============================================================================
+
+MYDATA       UDATA                  ; Start uninitialized RAM section
+
     cblock 0x20
         INDEX
         TEMP_CHAR
@@ -27,19 +41,13 @@
         overflow_count      ; Count Timer1 overflows for 1 second
     endc
 
-;===============================================================================
-; Reset and Interrupt Vectors
-;===============================================================================
-    ORG 0x00
-    goto setup             ; Reset vector
 
-    ORG 0x04
-        goto isr_handler      ; Interrupt vector
 
 ;===============================================================================
 ; Main Code
 ;===============================================================================
-    ORG 0x020              ; Start of main program
+
+MAIN_PROG    CODE                   ; Let linker place code
 
 setup:
     clrf button_pressed ; Initialize button_pressed to 0
@@ -354,7 +362,7 @@ end_isr:
 ;===============================================================================
 ; String Tables (retlw-based lookup)
 ;===============================================================================
-    ORG 0x100                 ; Place strings at page boundary
+STRINGS_SECTION   CODE
 
 welcome_str:
     addwf PCL, F
@@ -367,6 +375,10 @@ division_str:
 number_str:
     addwf PCL, F
     DT "Number 1", 0
+
+number2_str:
+    addwf PCL, F
+    DT "Number 2", 0
 
     END
 
