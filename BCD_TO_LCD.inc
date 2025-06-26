@@ -6,21 +6,22 @@ BCD_TO_LCD CODE
     ENDC
  
 ; Convert BCD to ASCII for LCD display
-; Input: WREG contains address of BCD byte
+; Input: WREG contains BCD byte
 ; Output: Displays the BCD value on the LCD
 PRINT_ONE_BCD_TO_LCD:
 
     ; Mask to get the ones digit
+    SWAPF WREG, W ; Swap nibbles to get tens digit
     ANDLW 0x0F
     ; Convert ones digit to ASCII
-    ADDLW 'A'; Adjust for ASCII conversion
+    ADDLW '0'; Adjust for ASCII conversion
     CALL LCD_CHAR
 
-    SWAPF WREG, W ; Swap nibbles to get tens digit
+    MOVF WREG, W ; Swap nibbles to get tens digit
     ; Mask to get the units digit
     ANDLW 0x0F
     ; Convert units digit to ASCII
-    ADDLW 'A' ; Adjust for ASCII conversion
+    ADDLW '0' ; Adjust for ASCII conversion
     CALL LCD_CHAR
 
     RETURN
