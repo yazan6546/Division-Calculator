@@ -51,4 +51,32 @@ PRINT_BCD_LOOP:
     RETURN
 
 
-    
+; Initialize BCD values in memory
+; This routine sets up the BCD values in the specified memory locations
+; Input : Base address in WREG
+; Output: BCD values initialized in memory
+INIT_BCD:
+    ; Initialize BCD values in memory
+    MOVF WREG, W ; Load base address into WREG
+    MOVWF FSR ; Set FSR to point to the base address
+    MOVLW 0x12 ; Example BCD value 0x12
+    MOVWF INDF ; Store at address in FSR (WREG points to base address
+    INCF FSR, F ; Move to next address
+    MOVLW 0x34 ; Example BCD value 0x34
+    MOVWF INDF ; Store at next address
+    INCF FSR, F ; Move to next address
+    MOVLW 0x56 ; Example BCD value 0x56
+    MOVWF INDF ; Store at next address
+    INCF FSR, F ; Move to next address
+    MOVLW 0x78 ; Example BCD value 0x78
+    MOVWF INDF ; Store at next address
+    INCF FSR, F ; Move to next address
+    MOVLW 0x98 ; Example BCD value 0x9A
+    MOVWF INDF ; Store at next address
+    INCF FSR, F ; Move to next address
+
+    MOVLW 0x64 ; Example BCD value 0xBC
+    MOVWF INDF ; Store at next address
+    INCF FSR, F ; Move to next address
+
+    RETURN
