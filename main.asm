@@ -40,14 +40,14 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         timer_h             ; Timer1 high preset value
         timer_l             ; Timer1 low preset value
         overflow_count      ; Count Timer1 overflows for 1 second
+        number_1_bcd      :6 ; BCD representation of number 1
+        number_2_bcd      :6 ; BCD representation of number 2
+        number_1_binary   :5 ; Binary representation of number 1
+        number_2_binary   :5 ; Binary representation of number 2
+        number_1_char     :12 ; ASCII representation of number 1
+        number_2_char     :12 ; ASCII representation of number 2
     endc
 
-    number_1_bcd RES 6 ; Reserve 6 bytes for BCD representation of number 1
-    number_2_bcd RES 6 ; Reserve 6 bytes for BCD representation of number 2
-    number_1_binary RES 5 ; Reserve 5 bytes for binary representation of number 1
-    number_2_binary RES 5 ; Reserve 5 bytes for binary representation of number
-    number_1_char RES 12 ; Reserve 12 bytes for ASCII representation of number 1
-    number_2_char RES 12 ; Reserve 12 bytes for ASCII representation of number
 
 
 
