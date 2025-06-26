@@ -6,6 +6,7 @@
     LIST        p=16f877a
     INCLUDE    <p16f877a.INC>
     INCLUDE     <LCD_DRIVER.INC>
+    INCLUDE    <BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
