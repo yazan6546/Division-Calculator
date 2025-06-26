@@ -41,6 +41,13 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         overflow_count      ; Count Timer1 overflows for 1 second
     endc
 
+    number_1_bcd RES 6 ; Reserve 6 bytes for BCD representation of number 1
+    number_2_bcd RES 6 ; Reserve 6 bytes for BCD representation of number 2
+    number_1_binary RES 5 ; Reserve 5 bytes for binary representation of number 1
+    number_2_binary RES 5 ; Reserve 5 bytes for binary representation of number
+    number_1_char RES 12 ; Reserve 12 bytes for ASCII representation of number 1
+    number_2_char RES 12 ; Reserve 12 bytes for ASCII representation of number
+
 
 
 ;===============================================================================
@@ -178,7 +185,7 @@ print_first_message:
 
 print_number_message:
     clrf INDEX
-    movlw HIGH(welcome_str)   ; Set PCLATH for correct table page
+    movlw HIGH(number_str)    ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_number_message_loop:
