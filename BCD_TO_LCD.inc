@@ -33,10 +33,13 @@ PRINT_ONE_BCD_TO_LCD:
 PRINT_BCD_TO_LCD:
     MOVLW 6 ; Number of BCD bytes to print
     MOVWF NUM_BYTES ; Store count in TEMP_CHAR1
-PRINT_BCD_LOOP:
+
     ; Load the BCD byte from the address in WREG
     MOVF WREG, W
     MOVWF FSR
+    
+PRINT_BCD_LOOP:
+    
     MOVF INDF, W ; Load BCD byte into W
     MOVWF WREG ; Store it back in WREG for processing
     ; Call the conversion routine to print the BCD byte
