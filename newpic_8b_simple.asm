@@ -43,7 +43,8 @@
 
 setup:
     clrf button_pressed ; Initialize button_pressed to 0
-    call LCD_INIT          ; Initialize LCD    call print_first_message ; Print initial messages
+    call LCD_INIT          ; Initialize LCD    
+    call print_first_message ; Print initial messages
 
     call DEL250
     call DEL250
