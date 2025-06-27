@@ -83,6 +83,7 @@ setup:
     clrf led_status       ; Clear LED status
 
     call print_number ; Print the number in button_pressed
+    clrf INDEX
 
 main_loop:
     ; Check if timer flag is set (1 second elapsed)
@@ -98,10 +99,9 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf timer_flag, 0
-    
-    ; Move cursor right
-    movlw 0x14            ; LCD command: cursor right
-    call LCDINS           ; Send command to LCD
+    INCF INDEX, F         ; Increment index for visual effect   
+
+    MoveCursorReg 2, INDEX ; Move cursor to row 2, column
     return
 
 handle_button:
@@ -216,9 +216,17 @@ continue_number_message:
 
 print_number:
     
+    ; put the number of digits in w
+    movlw 12
+    movwf INDEX
+
+print_number_loop:
+
     movf button_pressed, W ; Get the number to print
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR
+    DECFSZ INDEX, F ; Decrement index
+    goto print_number_loop ; Loop until all digits printed
     return
 
 

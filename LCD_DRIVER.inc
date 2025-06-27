@@ -204,3 +204,16 @@ DEL_0:
 	DECFSZ CNTC,F
 	GOTO D1
 	RETLW 0x00
+
+
+; Macro to move cursor to row/column (for 16x2 LCD)
+; Usage: MoveCursor 2, 5  ; Row 2, Column 5
+MoveCursorReg macro row, colreg
+    if row == 1
+        movlw 0x80
+    else
+        movlw 0xC0
+    endif
+    addwf colreg, w    ; W = base + [colreg]
+    call LCDINS
+    endm
