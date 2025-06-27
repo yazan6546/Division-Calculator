@@ -84,3 +84,4 @@ INIT_BCD:
     INCF FSR, F ; Move to next address
 
     RETURN
+

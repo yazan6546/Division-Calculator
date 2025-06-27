@@ -221,7 +221,8 @@ print_number:
     movwf INDEX
 
 print_number_loop:
-
+    ; move cursor to row1 index 0
+    
     movf button_pressed, W ; Get the number to print
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR

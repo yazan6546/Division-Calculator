@@ -206,14 +206,28 @@ DEL_0:
 	RETLW 0x00
 
 
-; Macro to move cursor to row/column (for 16x2 LCD)
-; Usage: MoveCursor 2, 5  ; Row 2, Column 5
+; Improved macro to move cursor to row/column with register
 MoveCursorReg macro row, colreg
+    ; Get row base address (assembly time check)
     if row == 1
-        movlw 0x80
+        movlw 0x80            ; Row 1 base address
     else
-        movlw 0xC0
+        movlw 0xC0            ; Row 2 base address
     endif
-    addwf colreg, w    ; W = base + [colreg]
-    call LCDINS
+    
+    ; Save row base temporarily
+    movwf LCDTEMP
+    
+    ; Runtime bounds checking for column (0-15)
+    movf colreg, w
+    sublw .15                 ; W = 15 - colreg
+    btfss STATUS, C           ; Skip if colreg <= 15
+    movlw .15                 ; If colreg > 15, use 15
+    btfss STATUS, C
+    movwf colreg              ; Update colreg with max value
+    
+    ; Add column offset to row base
+    movf colreg, w
+    addwf LCDTEMP, w          ; W = base + colreg
+    call LCDINS               ; Send to LCD
     endm
