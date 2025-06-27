@@ -62,20 +62,11 @@ CONVERT_CHAR_TO_BCD:
 
     ; Convert TEMP_CHAR1 to BCD
     MOVF TEMP_CHAR1, W ; Load first character into W
-    SUBLW '0' ; Convert ASCII to BCD
-    ; Check if TEMP_CHAR1 is a valid digit (0-9)
-    BTFSC STATUS, C ; Check if carry is set (invalid digit)
-    RETURN ; If carry is set, return without storing
 
     ; Store the BCD value in memory
     MOVWF WREG ; Store the BCD value at the address in WREG
     SWAPF WREG, F ; Swap nibbles to prepare for second character
     MOVF TEMP_CHAR2, W ; Load second character into W
-    SUBLW '0' ; Convert ASCII to BCD
-    ; Check if TEMP_CHAR2 is a valid digit (0-9)
-    BTFSC STATUS, C ; Check if carry is set (invalid digit)
-    RETURN ; If carry is set, return without storing
-
     ; Store the second BCD value in memory
     IORWF WREG, F ; Store the second BCD value in the lower nibble
 

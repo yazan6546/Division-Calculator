@@ -102,7 +102,10 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf flags, TIMER
-    MoveCursorReg 2, INDEX; Move cursor to row 2, column INDEX+1
+    movf INDEX, w
+    addlw 1 ; Increment INDEX for next character
+    movwf INDEX_TEMP ; Store incremented index in INDEX_TEMP
+    MoveCursorReg 2, INDEX_TEMP; Move cursor to row 2, column INDEX+1
 
     ; call the function to save tempchar here
     movf button_pressed, W
