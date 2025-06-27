@@ -31,6 +31,7 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
 
     cblock 0x20
         INDEX
+        INDEX_TEMP
         TEMP_CHAR
         TEMP_CHAR1 ; Temporary character for LCD display
         TEMP_CHAR2 ; Temporary character for LCD displays
@@ -101,15 +102,14 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf flags, TIMER
-    MoveCursorReg 2, INDEX + 1 ; Move cursor to row 2, column INDEX+1
+    MoveCursorReg 2, INDEX; Move cursor to row 2, column INDEX+1
 
     ; call the function to save tempchar here
     movf button_pressed, W
-    addlw '0' ; Convert to ASCII
-    movwf TEMP_CHAR2
-    btfss INDEX, 1 ; Check if index is odd
+    btfss INDEX, 0 ; Check if index is odd
     goto iseven ; Save button_pressed to TEMP_CHAR for display
     ; Convert button_pressed to BCD and display on LCD
+    movwf TEMP_CHAR2
     RRF INDEX, W ; Rotate right to divide by 2
     ; get base address
     addwf number_1_bcd, W ; Add to base address of number_1_bcd
@@ -145,12 +145,12 @@ handle_button:
 ; Print "Welcome to"
 ;===============================================================================
 print_welcome:
-    clrf INDEX
+    clrf INDEX_TEMP
     movlw HIGH(welcome_str)   ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_welcome_loop:
-    movf INDEX, W
+    movf INDEX_TEMP, W
     call welcome_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
@@ -162,19 +162,19 @@ print_welcome_loop:
 
 continue_welcome:
     call LCD_CHAR
-    incf INDEX, F
+    incf INDEX_TEMP, F
     goto print_welcome_loop
 
 ;===============================================================================
 ; Print "Division!"
 ;===============================================================================
 print_division:
-    clrf INDEX
+    clrf INDEX_TEMP
     movlw HIGH(division_str)  ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_division_loop:
-    movf INDEX, W
+    movf INDEX_TEMP, W
     call division_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
@@ -185,7 +185,7 @@ print_division_loop:
 
 continue_division:
     call LCD_CHAR
-    incf INDEX, F
+    incf INDEX_TEMP, F
     goto print_division_loop
 
 
@@ -208,12 +208,12 @@ print_first_message:
     return
 
 print_number_message:
-    clrf INDEX
+    clrf INDEX_TEMP
     movlw HIGH(number_str)    ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_number_message_loop:
-    movf INDEX, W
+    movf INDEX_TEMP, W
     call number_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
@@ -225,7 +225,7 @@ print_number_message_loop:
 
 continue_number_message:
     call LCD_CHAR
-    incf INDEX, F
+    incf INDEX_TEMP, F
     goto print_number_message_loop
 
 
