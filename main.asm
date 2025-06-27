@@ -25,6 +25,8 @@ INT_VECT     code    0x0004
 ; Variables
 ;===============================================================================
 
+BUTTON      EQU 1         ; button flag bit
+TIMER       EQU 0         ; timer flag bit
 MYDATA       UDATA                  ; Start uninitialized RAM section
 
     cblock 0x20
@@ -32,8 +34,7 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         TEMP_CHAR
         loop_counter
         button_pressed
-        button_flag         ; Flag to indicate button was pressed
-        timer_flag          ; Flag to indicate 1 second elapsed
+        flags               ; Flags for button and timer
         led_status          ; LED on/off status for debugging
         W_TEMP              ; For interrupt context save
         STATUS_TEMP         ; For interrupt context save
@@ -78,8 +79,7 @@ setup:
     call LCD_L2           ; Move cursor to 2nd line  
     call init_ports       ; Initialize ports and interrupts
       ; Initialize flags
-    clrf button_flag      ; Clear button flag initially
-    clrf timer_flag       ; Clear timer flag initially
+    clrf flags         ; Clear flags
     clrf led_status       ; Clear LED status
 
     call print_number ; Print the number in button_pressed
@@ -87,18 +87,18 @@ setup:
 
 main_loop:
     ; Check if timer flag is set (1 second elapsed)
-    btfsc timer_flag, 0
+    btfsc flags, TIMER ; Check timer flag
     call handle_timer
     
     ; Check if button was pressed (flag set by ISR)
-    btfsc button_flag, 0
+    btfsc flags, BUTTON ; Check button flag
     call handle_button
     
     goto main_loop        ; Continue main loop
 
 handle_timer:
     ; Clear the timer flag
-    bcf timer_flag, 0
+    bcf flags, TIMER
     INCF INDEX, F         ; Increment index for visual effect   
 
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column
@@ -106,7 +106,7 @@ handle_timer:
 
 handle_button:
     ; Clear the button flag
-    bcf button_flag, 0    
+    bcf flags, BUTTON    
     
     ; Visual indication of timer reset - move cursor to home position
     movlw 0x02            ; LCD command: return home (cursor to position 0)
@@ -329,7 +329,7 @@ isr_handler:
       ; 1 full second has elapsed - set timer flag and reset counter
     movlw .4                ; Reset counter for next second
     movwf overflow_count
-    bsf timer_flag, 0       ; Set timer flag for main loop to handle
+    bsf flags, TIMER       ; Set timer flag for main loop to handle
     
     ; Toggle LED for debugging (RB1)
     BANKSEL PORTB
@@ -356,7 +356,7 @@ check_button:
     call reset_timer1_full  ; Reset timer and overflow counter on button press
       ; Set button flag for main loop to handle LCD updates
     BANKSEL 0
-    bsf button_flag, 0      ; Set button pressed flag
+    bsf flags, BUTTON     ; Set button pressed flag
     incf button_pressed, F  ; Increment button pressed count
     movlw D'10'             ; Check if button_pressed reaches 10
     subwf button_pressed, W ; Subtract 10 from button_pressed
