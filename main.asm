@@ -35,6 +35,7 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         loop_counter
         button_pressed
         flags               ; Flags for button and timer
+        mod2_ting
         led_status          ; LED on/off status for debugging
         W_TEMP              ; For interrupt context save
         STATUS_TEMP         ; For interrupt context save
@@ -99,9 +100,30 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf flags, TIMER
-    INCF INDEX, F         ; Increment index for visual effect   
+    INCF INDEX, F         ; Increment index for visual effect
 
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column
+
+    ; call the function to save tempchar here
+    movf button_pressed, W
+    addlw '0' ; Convert to ASCII
+
+    btss INDEX, 1 ; Check if index is odd
+    goto iseven ; Save button_pressed to TEMP_CHAR for display
+    ; Convert button_pressed to BCD and display on LCD
+    RRF INDEX, W ; Rotate right to divide by 2
+    ; get base address
+    addwf number_1_bcd, W ; Add to base address of number_1_bcd
+    movwf WREG ; Store in WREG 
+    
+    call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
+    goto skip_ting ; Skip saving to TEMP_CHAR1
+iseven:
+    ; If index is odd, save to TEMP_CHAR1
+    movwf TEMP_CHAR1 ; Save button_pressed to TEMP_CHAR for display
+
+skip_ting:
+    clrf button_pressed ; Reset button pressed count   `
     return
 
 handle_button:
