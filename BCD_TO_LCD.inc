@@ -1,8 +1,10 @@
 BCD_TO_LCD CODE
 
-    CBLOCK 0x20
+    CBLOCK 0x21
         WREG         ; Working register for first BCD Address
         NUM_BYTES   ; Number of BCD bytes to print
+        TEMP_CHAR1 ; Temporary character for LCD display
+        TEMP_CHAR2 ; Temporary character for LCD display
     ENDC
  
 ; Convert BCD to ASCII for LCD display
@@ -52,6 +54,33 @@ PRINT_BCD_LOOP:
     GOTO PRINT_BCD_LOOP
 
     ; End of BCD_TO_LCD code
+    RETURN
+
+; Convert 2 characters to BCD format
+; Input: TEMP_CHAR1 contains first character, TEMP_CHAR2 contains second character, 
+;        WREG contains the base address for storing BCD values
+; Output: BCD values stored in memory at the address in WREG
+CONVERT_CHAR_TO_BCD:
+
+    ; Convert TEMP_CHAR1 to BCD
+    MOVF TEMP_CHAR1, W ; Load first character into W
+    SUBLW '0' ; Convert ASCII to BCD
+    ; Check if TEMP_CHAR1 is a valid digit (0-9)
+    BTFSC STATUS, C ; Check if carry is set (invalid digit)
+    RETURN ; If carry is set, return without storing
+
+    ; Store the BCD value in memory
+    MOVWF WREG ; Store the BCD value at the address in WREG
+    SWAPF WREG, F ; Swap nibbles to prepare for second character
+    MOVF TEMP_CHAR2, W ; Load second character into W
+    SUBLW '0' ; Convert ASCII to BCD
+    ; Check if TEMP_CHAR2 is a valid digit (0-9)
+    BTFSC STATUS, C ; Check if carry is set (invalid digit)
+    RETURN ; If carry is set, return without storing
+
+    ; Store the second BCD value in memory
+    IORWF WREG, F ; Store the second BCD value in the lower nibble
+
     RETURN
 
 

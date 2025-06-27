@@ -116,6 +116,7 @@ handle_button:
     call print_number_message ; Print "Number 1"
     call LCD_L2           ; Move cursor to 2nd line
     call print_number     ; Print the number in button_pressed
+    MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
     return
 
 ;===============================================================================
@@ -217,8 +218,8 @@ continue_number_message:
 print_number:
     
     ; put the number of digits in w
-    movlw 12
-    movwf INDEX
+    movlw D'12' ; Assume maximum 12 digits to print
+    movwf loop_counter ; Initialize loop counter
 
 print_number_loop:
     ; move cursor to row1 index 0
@@ -226,7 +227,7 @@ print_number_loop:
     movf button_pressed, W ; Get the number to print
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR
-    DECFSZ INDEX, F ; Decrement index
+    DECFSZ loop_counter, F ; Decrement index
     goto print_number_loop ; Loop until all digits printed
     return
 
