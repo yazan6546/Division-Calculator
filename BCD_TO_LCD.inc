@@ -3,8 +3,6 @@ BCD_TO_LCD CODE
     CBLOCK 0x21
         WREG         ; Working register for first BCD Address
         NUM_BYTES   ; Number of BCD bytes to print
-        TEMP_CHAR1 ; Temporary character for LCD display
-        TEMP_CHAR2 ; Temporary character for LCD display
     ENDC
  
 ; Convert BCD to ASCII for LCD display
