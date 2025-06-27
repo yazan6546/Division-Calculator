@@ -114,9 +114,8 @@ handle_timer:
     ; Convert button_pressed to BCD and display on LCD
     movwf TEMP_CHAR2
     RRF INDEX, W ; Rotate right to divide by 2
-    ; get base address
-    addwf number_1_bcd, W ; Add to base address of number_1_bcd
-    movwf WREG ; Store in WREG 
+    addlw number_1_bcd
+    movwf FSR ; Store in WREG 
     
     call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
     goto skip_ting ; Skip saving to TEMP_CHAR1
