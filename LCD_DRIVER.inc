@@ -220,9 +220,9 @@ MoveCursorReg macro row, colreg
     
     ; Runtime bounds checking for column (0-15)
     movf colreg, w
-    sublw .13               ; W = 15 - colreg
+    sublw .11               ; W = 15 - colreg
     btfss STATUS, C           ; Skip if colreg <= 15
-    movlw .13                 ; If colreg > 15, use 15
+    movlw .11                 ; If colreg > 15, use 15
     btfss STATUS, C
     movwf colreg              ; Update colreg with max value
     
