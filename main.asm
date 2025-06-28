@@ -5,7 +5,7 @@
 
     LIST        p=16f877a
     INCLUDE    <p16f877a.INC>
-    INCLUDE     <LCD_DRIVER.INC>
+    INCLUDE    <LCD_DRIVER.INC>
     INCLUDE    <BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
@@ -131,14 +131,7 @@ skip_ting:
 handle_button:
     ; Clear the button flag
     bcf flags, BUTTON    
-    
-    ; Visual indication of timer reset - move cursor to home position
-    movlw 0x02            ; LCD command: return home (cursor to position 0)
-    call LCDINS           ; Send command to LCD
-    
-    call LCD_CLR          ; Clear LCD
-    call print_number_message ; Print "Number 1"
-    call LCD_L2           ; Move cursor to 2nd line
+
     call print_number     ; Print the number in button_pressed
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
     return
@@ -242,8 +235,9 @@ continue_number_message:
 print_number:
     
     ; put the number of digits in w
-    movlw D'12' ; Assume maximum 12 digits to print
-    movwf loop_counter ; Initialize loop counter
+    movf INDEX, W ; Get the current index
+    sublw D'12' ; Subtract 12 to get the number of digits to print
+    movwf loop_counter ; Store the number of digits to print in loop_counter
 
 print_number_loop:
     ; move cursor to row1 index 0
