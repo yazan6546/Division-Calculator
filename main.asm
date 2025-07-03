@@ -87,6 +87,7 @@ setup:
 
     call print_number ; Print the number in button_pressed
     clrf INDEX
+    MoveCursorReg 2, INDEX ; Move cursor to row 2, column 0
 
 main_loop:
     ; Check if timer flag is set (1 second elapsed)
