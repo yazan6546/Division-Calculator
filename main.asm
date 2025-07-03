@@ -125,7 +125,6 @@ iseven:
 
 skip_ting:
     incf INDEX, F ; Increment index for next character
-    clrf button_pressed ; Reset button pressed count   `
     return
 
 handle_button:
