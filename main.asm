@@ -132,30 +132,9 @@ handle_timer_first_num:
     btfsc STATUS, Z
     goto transition_to_second_num
     
-    ; Continue with first number input
-    movf INDEX, w
-    addlw 1 ; Increment INDEX for next character
-    movwf INDEX_TEMP ; Store incremented index in INDEX_TEMP
-    MoveCursorReg 2, INDEX_TEMP; Move cursor to row 2, column INDEX+1
-
-    ; Save digit to first number storage
-    movf button_pressed, W
-    btfss INDEX, 0 ; Check if index is odd
-    goto save_first_even ; Save button_pressed for first number
-    ; Convert button_pressed to BCD and display on LCD
-    movwf TEMP_CHAR2
-    RRF INDEX, W ; Rotate right to divide by 2
-    addlw number_1_bcd
-    movwf FSR ; Store in WREG 
-    
-    call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
-    goto skip_first_save
-save_first_even:
-    ; If index is even, save to TEMP_CHAR1
-    movwf TEMP_CHAR1 ; Save button_pressed to TEMP_CHAR for display
-
-skip_first_save:
-    incf INDEX, F ; Increment index for next character
+    ; Use common timer handler with first number BCD base address
+    movlw number_1_bcd
+    call handle_timer_common
     return
 
 handle_timer_second_num:
@@ -165,29 +144,39 @@ handle_timer_second_num:
     btfsc STATUS, Z
     goto transition_to_result
     
-    ; Continue with second number input
+    ; Use common timer handler with second number BCD base address
+    movlw number_2_bcd
+    call handle_timer_common
+    return
+
+; Common timer handler for both numbers
+; Input: W contains the base address for BCD storage (number_1_bcd or number_2_bcd)
+handle_timer_common:
+    movwf TEMP_CHAR ; Store base address temporarily
+    
+    ; Continue with number input
     movf INDEX, w
     addlw 1 ; Increment INDEX for next character
     movwf INDEX_TEMP ; Store incremented index in INDEX_TEMP
     MoveCursorReg 2, INDEX_TEMP; Move cursor to row 2, column INDEX+1
 
-    ; Save digit to second number storage
+    ; Save digit to number storage
     movf button_pressed, W
     btfss INDEX, 0 ; Check if index is odd
-    goto save_second_even ; Save button_pressed for second number
+    goto save_even ; Save button_pressed for number
     ; Convert button_pressed to BCD and display on LCD
     movwf TEMP_CHAR2
     RRF INDEX, W ; Rotate right to divide by 2
-    addlw number_2_bcd
-    movwf FSR ; Store in WREG 
+    addwf TEMP_CHAR, W ; Add to base address
+    movwf FSR ; Store in FSR
     
     call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
-    goto skip_second_save
-save_second_even:
+    goto skip_save
+save_even:
     ; If index is even, save to TEMP_CHAR1
     movwf TEMP_CHAR1 ; Save button_pressed to TEMP_CHAR for display
 
-skip_second_save:
+skip_save:
     incf INDEX, F ; Increment index for next character
     return
 
