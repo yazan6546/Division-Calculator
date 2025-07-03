@@ -27,6 +27,11 @@ INT_VECT     code    0x0004
 
 BUTTON      EQU 1         ; button flag bit
 TIMER       EQU 0         ; timer flag bit
+
+; State definitions
+STATE_FIRST_NUM   EQU 0    ; Inputting first number
+STATE_SECOND_NUM  EQU 1    ; Inputting second number
+STATE_RESULT      EQU 2    ; Showing result
 MYDATA       UDATA                  ; Start uninitialized RAM section
 
     cblock 0x20
@@ -39,6 +44,7 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         button_pressed
         flags               ; Flags for button and timer
         led_status          ; LED on/off status for debugging
+        state               ; Current state: 0=first_num, 1=second_num, 2=result
         W_TEMP              ; For interrupt context save
         STATUS_TEMP         ; For interrupt context save
         timer_h             ; Timer1 high preset value
@@ -63,6 +69,7 @@ MAIN_PROG    CODE                   ; Let linker place code
 
 setup:
     clrf button_pressed ; Initialize button_pressed to 0
+    clrf state          ; Initialize state to STATE_FIRST_NUM (0)
     call LCD_INIT          ; Initialize LCD    
     call print_first_message ; Print initial messages
 
@@ -103,15 +110,38 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf flags, TIMER
+    
+    ; Check current state and handle accordingly
+    movf state, W
+    sublw STATE_FIRST_NUM
+    btfsc STATUS, Z
+    goto handle_timer_first_num
+    
+    movf state, W
+    sublw STATE_SECOND_NUM
+    btfsc STATUS, Z
+    goto handle_timer_second_num
+    
+    ; If in result state, just return
+    return
+
+handle_timer_first_num:
+    ; Check if we've reached 12 digits for first number
+    movf INDEX, W
+    sublw D'12'
+    btfsc STATUS, Z
+    goto transition_to_second_num
+    
+    ; Continue with first number input
     movf INDEX, w
     addlw 1 ; Increment INDEX for next character
     movwf INDEX_TEMP ; Store incremented index in INDEX_TEMP
     MoveCursorReg 2, INDEX_TEMP; Move cursor to row 2, column INDEX+1
 
-    ; call the function to save tempchar here
+    ; Save digit to first number storage
     movf button_pressed, W
     btfss INDEX, 0 ; Check if index is odd
-    goto iseven ; Save button_pressed to TEMP_CHAR for display
+    goto save_first_even ; Save button_pressed for first number
     ; Convert button_pressed to BCD and display on LCD
     movwf TEMP_CHAR2
     RRF INDEX, W ; Rotate right to divide by 2
@@ -119,21 +149,112 @@ handle_timer:
     movwf FSR ; Store in WREG 
     
     call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
-    goto skip_ting ; Skip saving to TEMP_CHAR1
-iseven:
-    ; If index is odd, save to TEMP_CHAR1
+    goto skip_first_save
+save_first_even:
+    ; If index is even, save to TEMP_CHAR1
     movwf TEMP_CHAR1 ; Save button_pressed to TEMP_CHAR for display
 
-skip_ting:
+skip_first_save:
     incf INDEX, F ; Increment index for next character
+    return
+
+handle_timer_second_num:
+    ; Check if we've reached 12 digits for second number
+    movf INDEX, W
+    sublw D'12'
+    btfsc STATUS, Z
+    goto transition_to_result
+    
+    ; Continue with second number input
+    movf INDEX, w
+    addlw 1 ; Increment INDEX for next character
+    movwf INDEX_TEMP ; Store incremented index in INDEX_TEMP
+    MoveCursorReg 2, INDEX_TEMP; Move cursor to row 2, column INDEX+1
+
+    ; Save digit to second number storage
+    movf button_pressed, W
+    btfss INDEX, 0 ; Check if index is odd
+    goto save_second_even ; Save button_pressed for second number
+    ; Convert button_pressed to BCD and display on LCD
+    movwf TEMP_CHAR2
+    RRF INDEX, W ; Rotate right to divide by 2
+    addlw number_2_bcd
+    movwf FSR ; Store in WREG 
+    
+    call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
+    goto skip_second_save
+save_second_even:
+    ; If index is even, save to TEMP_CHAR1
+    movwf TEMP_CHAR1 ; Save button_pressed to TEMP_CHAR for display
+
+skip_second_save:
+    incf INDEX, F ; Increment index for next character
+    return
+
+transition_to_second_num:
+    ; Transition from first number to second number
+    movlw STATE_SECOND_NUM
+    movwf state
+    clrf INDEX              ; Reset index for second number
+    call LCD_CLR            ; Clear LCD
+    call print_number2_message ; Print "Number 2"
+    call LCD_L2             ; Move cursor to 2nd line
+    MoveCursorReg 2, INDEX  ; Move cursor to row 2, column 0
+    return
+
+transition_to_result:
+    ; Transition to result state
+    movlw STATE_RESULT
+    movwf state
+    call LCD_CLR            ; Clear LCD
+    call LCD_L1             ; Move to first line
+    call print_result_message ; Print result
     return
 
 handle_button:
     ; Clear the button flag
     bcf flags, BUTTON    
 
+    ; Check current state and handle accordingly
+    movf state, W
+    sublw STATE_FIRST_NUM
+    btfsc STATUS, Z
+    goto handle_button_first_num
+    
+    movf state, W
+    sublw STATE_SECOND_NUM
+    btfsc STATUS, Z
+    goto handle_button_second_num
+    
+    movf state, W
+    sublw STATE_RESULT
+    btfsc STATUS, Z
+    goto handle_button_result
+    
+    return
+
+handle_button_first_num:
+    ; Handle button press during first number input
     call print_number     ; Print the number in button_pressed
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
+    return
+
+handle_button_second_num:
+    ; Handle button press during second number input
+    call print_number     ; Print the number in button_pressed
+    MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
+    return
+
+handle_button_result:
+    ; Handle button press when showing result - restart the process
+    movlw STATE_FIRST_NUM
+    movwf state
+    clrf INDEX              ; Reset index
+    clrf button_pressed     ; Reset button counter
+    call LCD_CLR            ; Clear LCD
+    call print_number_message ; Print "Number 1"
+    call LCD_L2             ; Move cursor to 2nd line
+    MoveCursorReg 2, INDEX  ; Move cursor to row 2, column 0
     return
 
 ;===============================================================================
@@ -222,6 +343,48 @@ continue_number_message:
     call LCD_CHAR
     incf INDEX_TEMP, F
     goto print_number_message_loop
+
+print_number2_message:
+    clrf INDEX_TEMP
+    movlw HIGH(number2_str)    ; Set PCLATH for correct table page
+    movwf PCLATH
+
+print_number2_message_loop:
+    movf INDEX_TEMP, W
+    call number2_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
+    goto continue_number2_message
+    clrf PCLATH
+    
+    return
+
+continue_number2_message:
+    call LCD_CHAR
+    incf INDEX_TEMP, F
+    goto print_number2_message_loop
+
+print_result_message:
+    clrf INDEX_TEMP
+    movlw HIGH(result_str)    ; Set PCLATH for correct table page
+    movwf PCLATH
+
+print_result_message_loop:
+    movf INDEX_TEMP, W
+    call result_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
+    goto continue_result_message
+    clrf PCLATH
+    
+    return
+
+continue_result_message:
+    call LCD_CHAR
+    incf INDEX_TEMP, F
+    goto print_result_message_loop
 
 
 
@@ -415,6 +578,10 @@ number_str:
 number2_str:
     addwf PCL, F
     DT "Number 2", 0
+
+result_str:
+    addwf PCL, F
+    DT "Result:", 0
 
     END
 
