@@ -181,6 +181,7 @@ skip_save:
     return
 
 transition_to_second_num:
+    clrf button_pressed ; Reset button pressed count
     ; Transition from first number to second number
     movlw STATE_SECOND_NUM
     movwf state
@@ -188,6 +189,7 @@ transition_to_second_num:
     call LCD_CLR            ; Clear LCD
     call print_number2_message ; Print "Number 2"
     call LCD_L2             ; Move cursor to 2nd line
+    call print_number ; Print the number in button_pressed
     MoveCursorReg 2, INDEX  ; Move cursor to row 2, column 0
     return
 
