@@ -4,48 +4,21 @@
 ; Author: ahmadqaimari
 ; Date: 2025-06-28
 ; Purpose: Test the bcd_to_binary.inc library with various test cases
+; Note: Updated to test BIG-ENDIAN input format (MSB first)
 ; ============================================================================
 
     list p=16f877a
     #include <p16f877a.inc>
-    
+    #include "bcd_to_binary.inc"
+
     __CONFIG _CP_OFF & _WDT_OFF & _BODEN_OFF & _PWRTE_ON & _HS_OSC & _WRT_OFF & _LVP_OFF & _CPD_OFF
 
-; ============================================================================
-; VARIABLE DEFINITIONS
-; ============================================================================
-    cblock 0x20
-        ; Function parameters (REQUIRED by bcd_to_binary.inc)
-        BCD_INPUT_BASE_ADDR     ; Base address of 48-bit BCD input
-        
-        ; Working variables (REQUIRED by bcd_to_binary.inc)
-        BIT_COUNT               ; Counter for 40 bits
-        TEMP_REG                ; Temporary register
-        CURRENT_ADDR            ; Current address pointer
-        BYTE_COUNT              ; Byte counter for loops
-        FSR_BACKUP              ; Backup for FSR register
-        
-        ; Working copy of BCD data (REQUIRED by bcd_to_binary.inc)
-        WORK_BCD_0              ; Working copy of BCD data
-        WORK_BCD_1
-        WORK_BCD_2
-        WORK_BCD_3
-        WORK_BCD_4
-        WORK_BCD_5
-        
-        ; WORK_BIN = Working area AND final output! (REQUIRED by bcd_to_binary.inc)
-        WORK_BIN_0              ; Binary result (LSB)
-        WORK_BIN_1              ; Binary result
-        WORK_BIN_2              ; Binary result
-        WORK_BIN_3              ; Binary result
-        WORK_BIN_4              ; Binary result (MSB)
-    endc
 
 ; ============================================================================
 ; TEST DATA AREAS
 ; ============================================================================
     cblock 0x40
-        ; Test Case 1: BCD 123456789 (00 01 23 45 67 89)
+        ; Test Case 1: BCD 123456789 (BIG-ENDIAN: 00 01 23 45 67 89)
         TEST1_BCD_INPUT
         TEST1_BCD_INPUT_1
         TEST1_BCD_INPUT_2
@@ -55,7 +28,7 @@
     endc
     
     cblock 0x50
-        ; Test Case 2: BCD 999999999 (99 99 99 99 00 00)
+        ; Test Case 2: BCD 999999999 (BIG-ENDIAN: 00 00 99 99 99 99)
         TEST2_BCD_INPUT
         TEST2_BCD_INPUT_1
         TEST2_BCD_INPUT_2
@@ -65,7 +38,7 @@
     endc
     
     cblock 0x60
-        ; Test Case 3: BCD 000000001 (01 00 00 00 00 00)
+        ; Test Case 3: BCD 000000001 (BIG-ENDIAN: 00 00 00 00 00 01)
         TEST3_BCD_INPUT
         TEST3_BCD_INPUT_1
         TEST3_BCD_INPUT_2
@@ -128,22 +101,23 @@ INIT_SYSTEM:
     return
 
 ; ============================================================================
-; TEST CASE 1: Convert BCD 123456789 (00 01 23 45 67 89)
-; Expected Binary: 0x075BCD15 = 15 CD 5B 07 00
+; TEST CASE 1: Convert BCD 123456789 (00 01 23 45 67 89) - BIG-ENDIAN INPUT
+; Expected Binary: 0x075BCD15 = 15 CD 5B 07 00 (LSB to MSB in WORK_BIN)
 ; ============================================================================
 TEST_CASE_1:
-    ; Load BCD test data for 123456789
-    movlw 0x89              ; Digits 8,9 (LSB)
+    ; Load BCD test data for 123456789 in BIG-ENDIAN format
+    ; Input: MSB at addr+0, LSB at addr+5
+    movlw 0x00              ; Leading zeros (MSB)
     movwf TEST1_BCD_INPUT
-    movlw 0x67              ; Digits 6,7
-    movwf TEST1_BCD_INPUT_1
-    movlw 0x45              ; Digits 4,5
-    movwf TEST1_BCD_INPUT_2
-    movlw 0x23              ; Digits 2,3
-    movwf TEST1_BCD_INPUT_3
     movlw 0x01              ; Digits 0,1
+    movwf TEST1_BCD_INPUT_1
+    movlw 0x23              ; Digits 2,3
+    movwf TEST1_BCD_INPUT_2
+    movlw 0x45              ; Digits 4,5
+    movwf TEST1_BCD_INPUT_3
+    movlw 0x67              ; Digits 6,7
     movwf TEST1_BCD_INPUT_4
-    movlw 0x00              ; Leading zeros
+    movlw 0x89              ; Digits 8,9 (LSB)
     movwf TEST1_BCD_INPUT_5
     
     ; Set function parameter
@@ -160,22 +134,23 @@ TEST_CASE_1:
     return
 
 ; ============================================================================
-; TEST CASE 2: Convert BCD 999999999 (99 99 99 99 00 00)
-; Expected Binary: 0x3B9AC9FF = FF C9 9A 3B 00
+; TEST CASE 2: Convert BCD 999999999 (99 99 99 99 00 00) - BIG-ENDIAN INPUT
+; Expected Binary: 0x3B9AC9FF = FF C9 9A 3B 00 (LSB to MSB in WORK_BIN)
 ; ============================================================================
 TEST_CASE_2:
-    ; Load BCD test data for 999999999
-    movlw 0x99              ; Digits 8,9 (LSB)
+    ; Load BCD test data for 999999999 in BIG-ENDIAN format
+    ; Input: MSB at addr+0, LSB at addr+5
+    movlw 0x00              ; Leading zeros (MSB)
     movwf TEST2_BCD_INPUT
-    movlw 0x99              ; Digits 6,7
-    movwf TEST2_BCD_INPUT_1
-    movlw 0x99              ; Digits 4,5
-    movwf TEST2_BCD_INPUT_2
-    movlw 0x99              ; Digits 2,3
-    movwf TEST2_BCD_INPUT_3
     movlw 0x00              ; Digits 0,1
+    movwf TEST2_BCD_INPUT_1
+    movlw 0x99              ; Digits 2,3
+    movwf TEST2_BCD_INPUT_2
+    movlw 0x99              ; Digits 4,5
+    movwf TEST2_BCD_INPUT_3
+    movlw 0x99              ; Digits 6,7
     movwf TEST2_BCD_INPUT_4
-    movlw 0x00              ; Leading zeros
+    movlw 0x99              ; Digits 8,9 (LSB)
     movwf TEST2_BCD_INPUT_5
     
     ; Set function parameter
@@ -192,12 +167,13 @@ TEST_CASE_2:
     return
 
 ; ============================================================================
-; TEST CASE 3: Convert BCD 000000001 (01 00 00 00 00 00)
-; Expected Binary: 0x00000001 = 01 00 00 00 00
+; TEST CASE 3: Convert BCD 000000001 (01 00 00 00 00 00) - BIG-ENDIAN INPUT
+; Expected Binary: 0x00000001 = 01 00 00 00 00 (LSB to MSB in WORK_BIN)
 ; ============================================================================
 TEST_CASE_3:
-    ; Load BCD test data for 1
-    movlw 0x01              ; Digit 1 (LSB)
+    ; Load BCD test data for 1 in BIG-ENDIAN format
+    ; Input: MSB at addr+0, LSB at addr+5
+    movlw 0x00              ; Leading zeros (MSB)
     movwf TEST3_BCD_INPUT
     movlw 0x00              ; All other digits zero
     movwf TEST3_BCD_INPUT_1
@@ -207,7 +183,7 @@ TEST_CASE_3:
     movwf TEST3_BCD_INPUT_3
     movlw 0x00
     movwf TEST3_BCD_INPUT_4
-    movlw 0x00
+    movlw 0x01              ; Digit 1 (LSB)
     movwf TEST3_BCD_INPUT_5
     
     ; Set function parameter
@@ -226,6 +202,5 @@ TEST_CASE_3:
 ; ============================================================================
 ; INCLUDE THE BCD TO BINARY CONVERSION LIBRARY
 ; ============================================================================
-#include "bcd_to_binary.inc"
 
     end

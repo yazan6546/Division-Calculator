@@ -7,6 +7,7 @@
     INCLUDE    <p16f877a.INC>
     INCLUDE    <LCD_DRIVER.INC>
     INCLUDE    <BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
+    INCLUDE    <conversion/bcd_to_binary.inc> ; Include BCD to Binary conversion routines
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
@@ -54,8 +55,8 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         number_2_bcd      :6 ; BCD representation of number 2
         number_1_binary   :5 ; Binary representation of number 1
         number_2_binary   :5 ; Binary representation of number 2
-        number_1_char     :12 ; ASCII representation of number 1
-        number_2_char     :12 ; ASCII representation of number 2
+        result_binary   :5 ; Binary representation of result
+        result_bcd      :6 ; BCD representation of result
     endc
 
 
@@ -180,6 +181,18 @@ skip_save:
     return
 
 transition_to_second_num:
+
+    ; Set function parameter
+    movlw number_1_bcd
+    movwf INPUT_BASE_ADDR
+
+    movlw number_1_binary ; Set binary output base address
+    movwf OUTPUT_BASE_ADDR
+    
+    ; Call BCD to Binary conversion
+    call BCD_TO_BIN_FUNCTION
+
+
     clrf button_pressed ; Reset button pressed count
     ; Transition from first number to second number
     movlw STATE_SECOND_NUM
@@ -193,6 +206,17 @@ transition_to_second_num:
     return
 
 transition_to_result:
+
+    ; Set function parameter
+    movlw number_2_bcd
+    movwf INPUT_BASE_ADDR
+
+    movlw number_2_binary ; Set binary output base address
+    movwf OUTPUT_BASE_ADDR
+    
+    ; Call BCD to Binary conversion
+    call BCD_TO_BIN_FUNCTION
+
     ; Transition to result state
     movlw STATE_RESULT
     movwf state

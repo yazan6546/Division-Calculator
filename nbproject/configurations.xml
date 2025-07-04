@@ -16,6 +16,8 @@
       <itemPath>LCD_PIN_SETTINGS.inc</itemPath>
       <itemPath>bcd_to_lcd.inc</itemPath>
       <itemPath>main.asm</itemPath>
+      <itemPath>conversion/bcd_to_binary.inc</itemPath>
+      <itemPath>conversion/binary_to_bcd.inc</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
