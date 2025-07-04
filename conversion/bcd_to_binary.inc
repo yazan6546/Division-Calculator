@@ -1,3 +1,38 @@
+
+bcd_to_binary CODE
+
+; ============================================================================
+; VARIABLE DEFINITIONS
+; ============================================================================
+    cblock 0x60
+        ; Function parameters (REQUIRED by bcd_to_binary.inc)
+        BCD_INPUT_BASE_ADDR     ; Base address of 48-bit BCD input
+        BCD_OUTPUT_BASE_ADDR    ; Base address of 40-bit binary output
+        
+        ; Working variables (REQUIRED by bcd_to_binary.inc)
+        BIT_COUNT               ; Counter for 40 bits
+        TEMP_REG                ; Temporary register
+        CURRENT_ADDR            ; Current address pointer
+        BYTE_COUNT              ; Byte counter for loops
+        FSR_BACKUP              ; Backup for FSR register
+        
+        ; Working copy of BCD data (REQUIRED by bcd_to_binary.inc)
+        WORK_BCD_0              ; Working copy of BCD data
+        WORK_BCD_1
+        WORK_BCD_2
+        WORK_BCD_3
+        WORK_BCD_4
+        WORK_BCD_5
+
+        
+        ; WORK_BIN = Working area AND final output! (REQUIRED by bcd_to_binary.inc)
+        WORK_BIN_0              ; Binary result (LSB)
+        WORK_BIN_1              ; Binary result
+        WORK_BIN_2              ; Binary result
+        WORK_BIN_3              ; Binary result
+        WORK_BIN_4              ; Binary result (MSB)
+    endc
+
 ; ============================================================================
 ; BCD TO BINARY CONVERSION LIBRARY
 ; File: bcd_to_binary.inc
@@ -9,7 +44,7 @@
 ; ============================================================================
 ; FUNCTION: BCD_TO_BIN_FUNCTION
 ; PURPOSE: Convert BCD to Binary, result stays in WORK_BIN variables
-; INPUT: BCD_INPUT_BASE_ADDR points to 6-byte BCD input
+; INPUT: BCD_INPUT_BASE_ADDR points to 6-byte BCD input, BCD_OUTPUT_BASE_ADDR points to 5-byte binary output
 ; OUTPUT: WORK_BIN_0 to WORK_BIN_4 contains 40-bit binary result
 ; PRESERVES: Original BCD input data (untouched)
 ; REQUIREMENTS:
@@ -53,9 +88,42 @@ REVERSE_CONVERT_LOOP:
     ; Restore FSR register
     movf FSR_BACKUP, W
     movwf FSR
-    
+
+    call COPY_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
     return
 
+; ============================================================================
+; FUNCTION: COPY_TO_OUTPUT_BASE_ADDRESS
+; PURPOSE: Copy working binary result to output base address
+; INPUT: BCD_OUTPUT_BASE_ADDR points to 5-byte binary output
+; OUTPUT: WORK_BIN_0 to WORK_BIN_4 copied to BCD_OUTPUT_BASE_ADDR
+; PRESERVES: Original working binary data (untouched)
+; REQUIREMENTS:
+;   - Variable BCD_OUTPUT_BASE_ADDR must be defined
+;   - Working binary area WORK_BIN_0 through WORK_BIN_4 must be defined
+; ============================================================================
+; Note: This function is called in BCD_TO_BIN_FUNCTION to save the result
+
+COPY_TO_OUTPUT_BASE_ADDRESS:
+    ; Copy working binary result to output base address
+    movf BCD_OUTPUT_BASE_ADDR, W
+    movwf FSR
+    movf WORK_BIN_0, W
+    movwf INDF
+    incf FSR, F
+    movf WORK_BIN_1, W
+    movwf INDF
+    incf FSR, F
+    movf WORK_BIN_2, W
+    movwf INDF
+    incf FSR, F
+    movf WORK_BIN_3, W
+    movwf INDF
+    incf FSR, F
+    movf WORK_BIN_4, W
+    movwf INDF
+
+    RETURN
 ; ============================================================================
 ; SUBROUTINE: COPY_BCD_TO_WORK
 ; PURPOSE: Copy BCD input to working registers (preserves original)

@@ -8,40 +8,10 @@
 
     list p=16f877a
     #include <p16f877a.inc>
-    
+    #include "bcd_to_binary.inc"
+
     __CONFIG _CP_OFF & _WDT_OFF & _BODEN_OFF & _PWRTE_ON & _HS_OSC & _WRT_OFF & _LVP_OFF & _CPD_OFF
 
-; ============================================================================
-; VARIABLE DEFINITIONS
-; ============================================================================
-    cblock 0x60
-        ; Function parameters (REQUIRED by bcd_to_binary.inc)
-        BCD_INPUT_BASE_ADDR     ; Base address of 48-bit BCD input
-        
-        ; Working variables (REQUIRED by bcd_to_binary.inc)
-        BIT_COUNT               ; Counter for 40 bits
-        TEMP_REG                ; Temporary register
-        CURRENT_ADDR            ; Current address pointer
-        BYTE_COUNT              ; Byte counter for loops
-        FSR_BACKUP              ; Backup for FSR register
-        
-        ; Working copy of BCD data (REQUIRED by bcd_to_binary.inc)
-        WORK_BCD_0              ; Working copy of BCD data
-        WORK_BCD_1
-        WORK_BCD_2
-        WORK_BCD_3
-        WORK_BCD_4
-        WORK_BCD_5
-
-        BINARY_OUTPUT_BASE_ADDR ; Base address for binary output (REQUIRED by bcd_to_binary.inc)
-        
-        ; WORK_BIN = Working area AND final output! (REQUIRED by bcd_to_binary.inc)
-        WORK_BIN_0              ; Binary result (LSB)
-        WORK_BIN_1              ; Binary result
-        WORK_BIN_2              ; Binary result
-        WORK_BIN_3              ; Binary result
-        WORK_BIN_4              ; Binary result (MSB)
-    endc
 
 ; ============================================================================
 ; TEST DATA AREAS
@@ -228,6 +198,5 @@ TEST_CASE_3:
 ; ============================================================================
 ; INCLUDE THE BCD TO BINARY CONVERSION LIBRARY
 ; ============================================================================
-#include "bcd_to_binary.inc"
 
     end
