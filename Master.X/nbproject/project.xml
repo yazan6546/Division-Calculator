@@ -3,8 +3,8 @@
     <type>com.microchip.mplab.nbide.embedded.makeproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/make-project/1">
-            <name>damn</name>
-            <creation-uuid>298b3777-067f-4174-a250-9bcbf97d2a07</creation-uuid>
+            <name>Master</name>
+            <creation-uuid>6e6e9139-fc81-42b3-b4fc-db776786a55d</creation-uuid>
             <make-project-type>0</make-project-type>
             <c-extensions/>
             <cpp-extensions/>
@@ -14,6 +14,7 @@
             <make-dep-projects/>
             <sourceRootList>
                 <sourceRootElem>.</sourceRootElem>
+                <sourceRootElem>../conversion</sourceRootElem>
             </sourceRootList>
             <confList>
                 <confElem>

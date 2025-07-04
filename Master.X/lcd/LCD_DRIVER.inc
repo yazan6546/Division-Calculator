@@ -3,7 +3,7 @@
 ;See the file LICENCE for copying permission.	  ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-	#include <LCD_PIN_SETTINGS.inc>
+	#include <lcd/LCD_PIN_SETTINGS.inc>
 
 ; Add code section for MPASM object file generation
 LCD_CODE	code
