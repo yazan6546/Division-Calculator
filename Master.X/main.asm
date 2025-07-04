@@ -223,7 +223,7 @@ transition_to_result:
     movlw number_1_binary ; Set first number binary base address
     movwf BUFFER
     movlw D'10' ; Set number of bytes to send
-    movwf UAR_NUM_BYTES ; Set number of bytes to send via UART
+    movwf UART_NUM_BYTES ; Set number of bytes to send via UART
     call UART_SEND ; Send numbers via UART
 
     movlw result_binary ; Set result binary base addres
