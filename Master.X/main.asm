@@ -7,6 +7,7 @@
     INCLUDE    <p16f877a.INC>
     INCLUDE    <lcd/LCD_DRIVER.INC>
     INCLUDE    <lcd/BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
+    INCLUDE   <conversion/binary_to_bcd.inc> ; Include delay routines
     INCLUDE    <conversion/bcd_to_binary.inc> ; Include BCD to Binary conversion routines
     INCLUDE    <../Include/UART.inc> ; Include UART routines
 
@@ -226,6 +227,7 @@ transition_to_result:
     call UART_SEND ; Send numbers via UART
 
     movlw result_binary ; Set result binary base addres
+    movwf BUFFER
     movlw D'5'
     movwf NUM_BYTES ; Set number of bytes to send via UART
     call UART_RECV
@@ -243,6 +245,13 @@ transition_to_result:
     call LCD_CLR            ; Clear LCD
     call LCD_L1             ; Move to first line
     call print_result_message ; Print result
+
+    call LCD_L2             ; Move cursor to 2nd line
+    clrf INDEX              ; Reset index for result display
+
+    movlw result_bcd ; Set result BCD base address
+    movwf WREG
+    call PRINT_BCD_TO_LCD
     return
 
 handle_button:
