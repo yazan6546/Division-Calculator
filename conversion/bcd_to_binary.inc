@@ -39,13 +39,15 @@ bcd_to_binary CODE
 ; Author: ahmadqaimari
 ; Date: 2025-06-28
 ; Purpose: Convert 48-bit BCD to 40-bit binary using reverse double dabble algorithm
+; Note: Updated to accept BIG-ENDIAN BCD input (MSB at base_addr+0, LSB at base_addr+5)
 ; ============================================================================
 
 ; ============================================================================
 ; FUNCTION: BCD_TO_BIN_FUNCTION
 ; PURPOSE: Convert BCD to Binary, result stays in WORK_BIN variables
-; INPUT: BCD_INPUT_BASE_ADDR points to 6-byte BCD input, BCD_OUTPUT_BASE_ADDR points to 5-byte binary output
-; OUTPUT: WORK_BIN_0 to WORK_BIN_4 contains 40-bit binary result
+; INPUT: BCD_INPUT_BASE_ADDR points to 6-byte BCD input (BIG-ENDIAN: MSB at addr+0, LSB at addr+5)
+;        BCD_OUTPUT_BASE_ADDR points to 5-byte binary output
+; OUTPUT: WORK_BIN_0 to WORK_BIN_4 contains 40-bit binary result (LSB to MSB)
 ; PRESERVES: Original BCD input data (untouched)
 ; REQUIREMENTS:
 ;   - Variable BCD_INPUT_BASE_ADDR must be defined
@@ -89,7 +91,7 @@ REVERSE_CONVERT_LOOP:
     movf FSR_BACKUP, W
     movwf FSR
 
-    call COPY_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
+    ; call COPY_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
     return
 
 ; ============================================================================
@@ -129,26 +131,28 @@ COPY_TO_OUTPUT_BASE_ADDRESS:
 ; PURPOSE: Copy BCD input to working registers (preserves original)
 ; ============================================================================
 COPY_BCD_TO_WORK:
-    ; Copy BCD input to working area
+    ; Copy BCD input to working area (BIG-ENDIAN INPUT)
+    ; Input format: MSB at base_addr+0, LSB at base_addr+5
+    ; Working format: LSB at WORK_BCD_0, MSB at WORK_BCD_5
     movf BCD_INPUT_BASE_ADDR, W
     movwf FSR
-    movf INDF, W
-    movwf WORK_BCD_0
+    movf INDF, W            ; Get MSB from input[0]
+    movwf WORK_BCD_5        ; Store as MSB in working area
     incf FSR, F
-    movf INDF, W
-    movwf WORK_BCD_1
+    movf INDF, W            ; Get input[1]
+    movwf WORK_BCD_4        ; Store as working[4]
     incf FSR, F
-    movf INDF, W
-    movwf WORK_BCD_2
+    movf INDF, W            ; Get input[2]
+    movwf WORK_BCD_3        ; Store as working[3]
     incf FSR, F
-    movf INDF, W
-    movwf WORK_BCD_3
+    movf INDF, W            ; Get input[3]
+    movwf WORK_BCD_2        ; Store as working[2]
     incf FSR, F
-    movf INDF, W
-    movwf WORK_BCD_4
+    movf INDF, W            ; Get input[4]
+    movwf WORK_BCD_1        ; Store as working[1]
     incf FSR, F
-    movf INDF, W
-    movwf WORK_BCD_5
+    movf INDF, W            ; Get LSB from input[5]
+    movwf WORK_BCD_0        ; Store as LSB in working area
     return
 
 ; ============================================================================

@@ -4,6 +4,7 @@
 ; Author: ahmadqaimari
 ; Date: 2025-06-28
 ; Purpose: Test the binary_to_bcd.inc library with various test cases
+; Note: Updated to test BIG-ENDIAN input format (MSB first)
 ; ============================================================================
 
     list p=16f877a
@@ -40,7 +41,7 @@
 ; TEST DATA AREAS
 ; ============================================================================
     cblock 0x30
-        ; Test Case 1: 123456789 (0x075BCD15)
+        ; Test Case 1: 123456789 (BIG-ENDIAN: 0x00075BCD15)
         TEST1_INPUT
         TEST1_INPUT_1
         TEST1_INPUT_2
@@ -59,7 +60,7 @@
     endc
     
     cblock 0x50
-        ; Test Case 2: 999999999 (0x3B9AC9FF)
+        ; Test Case 2: 999999999 (BIG-ENDIAN: 0x003B9AC9FF)
         TEST2_INPUT
         TEST2_INPUT_1
         TEST2_INPUT_2
@@ -123,20 +124,21 @@ INIT_SYSTEM:
     return
 
 ; ============================================================================
-; TEST CASE 1: Convert 123456789 (0x075BCD15)
-; Expected BCD: 00 01 23 45 67 89
+; TEST CASE 1: Convert 123456789 (0x075BCD15) - BIG-ENDIAN INPUT
+; Expected BCD: 00 01 23 45 67 89 (LSB to MSB in output)
 ; ============================================================================
 TEST_CASE_1:
-    ; Load test data: 123456789 = 0x075BCD15
-    movlw 0x15              ; LSB
+    ; Load test data: 123456789 = 0x075BCD15 in BIG-ENDIAN format
+    ; Input: MSB at addr+0, LSB at addr+4
+    movlw 0x00              ; MSB
     movwf TEST1_INPUT
-    movlw 0xCD
+    movlw 0x07
     movwf TEST1_INPUT_1
     movlw 0x5B
     movwf TEST1_INPUT_2
-    movlw 0x07
+    movlw 0xCD
     movwf TEST1_INPUT_3
-    movlw 0x00              ; MSB
+    movlw 0x15              ; LSB
     movwf TEST1_INPUT_4
     
     ; Clear output area
@@ -157,25 +159,26 @@ TEST_CASE_1:
     call BIN_TO_BCD_FUNCTION
     
     ; Test can be verified by checking TEST1_OUTPUT area
-    ; Should contain: 89 67 45 23 01 00
+    ; Should contain: 89 67 45 23 01 00 (LSB to MSB)
     
     return
 
 ; ============================================================================
-; TEST CASE 2: Convert 999999999 (0x3B9AC9FF)
-; Expected BCD: 99 99 99 99 00 00
+; TEST CASE 2: Convert 999999999 (0x3B9AC9FF) - BIG-ENDIAN INPUT
+; Expected BCD: 99 99 99 99 00 00 (LSB to MSB in output)
 ; ============================================================================
 TEST_CASE_2:
-    ; Load test data: 999999999 = 0x3B9AC9FF
-    movlw 0xFF              ; LSB
+    ; Load test data: 999999999 = 0x3B9AC9FF in BIG-ENDIAN format
+    ; Input: MSB at addr+0, LSB at addr+4
+    movlw 0x00              ; MSB
     movwf TEST2_INPUT
-    movlw 0xC9
+    movlw 0x3B
     movwf TEST2_INPUT_1
     movlw 0x9A
     movwf TEST2_INPUT_2
-    movlw 0x3B
+    movlw 0xC9
     movwf TEST2_INPUT_3
-    movlw 0x00              ; MSB
+    movlw 0xFF              ; LSB
     movwf TEST2_INPUT_4
     
     ; Clear output area
@@ -196,7 +199,7 @@ TEST_CASE_2:
     call BIN_TO_BCD_FUNCTION
     
     ; Test can be verified by checking TEST2_OUTPUT area
-    ; Should contain: 99 99 99 99 00 00
+    ; Should contain: 99 99 99 99 00 00 (LSB to MSB)
     
     return
 
