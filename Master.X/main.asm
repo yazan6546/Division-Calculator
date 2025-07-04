@@ -219,7 +219,11 @@ transition_to_result:
     ; Call BCD to Binary conversion
     call BCD_TO_BIN_FUNCTION
 
-    call UART_SEND ; Send first number via UART
+    movlw number_1_binary ; Set first number binary base address
+    movwf BUFFER
+    movlw D'10' ; Set number of bytes to send
+    movwf NUM_BYTES ; Set number of bytes to send via UART
+    call UART_SEND ; Send numbers via UART
 
     ; Transition to result state
     movlw STATE_RESULT
