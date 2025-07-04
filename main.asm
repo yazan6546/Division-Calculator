@@ -94,8 +94,7 @@ setup:
     clrf led_status       ; Clear LED status
     clrf INDEX
     call print_number ; Print the number in button_pressed
-    MoveCursorReg 2, INDEX ; Move cursor to row 2, column 0
-
+    call LCD_L2 ; Move cursor to 2nd line, column 0
 main_loop:
     ; Check if timer flag is set (1 second elapsed)
     btfsc flags, TIMER ; Check timer flag
@@ -190,7 +189,7 @@ transition_to_second_num:
     call print_number2_message ; Print "Number 2"
     call LCD_L2             ; Move cursor to 2nd line
     call print_number ; Print the number in button_pressed
-    MoveCursorReg 2, INDEX  ; Move cursor to row 2, column 0
+    call LCD_L2             ; Move cursor to 2nd line
     return
 
 transition_to_result:
@@ -246,7 +245,7 @@ handle_button_result:
     call print_number_message ; Print "Number 1"
     call LCD_L2             ; Move cursor to 2nd line
     call print_number       ; Print the current button value
-    MoveCursorReg 2, INDEX  ; Move cursor to row 2, column 0
+    call LCD_L2             ; Move cursor to 2nd line
     return
 
 ;===============================================================================
@@ -391,41 +390,13 @@ print_number:
     
     ; put the number of digits in w
     movf INDEX, W ; Get the current index
-    sublw D'12' ; Calculate 12 - INDEX to get remaining digits
+    sublw D'12' ; Calculate 12 - INDEX (original logic)
     movwf loop_counter ; Store the number of digits to print in loop_counter
-    
-    ; Determine which number array to use based on state
-    movf state, W
-    sublw STATE_FIRST_NUM
-    btfsc STATUS, Z
-    goto print_first_number
-    
-    ; Print second number
-    movlw number_2_char
-    goto print_number_setup
-    
-print_first_number:
-    ; Print first number  
-    movlw number_1_char
-    
-print_number_setup:
-    movwf TEMP_CHAR ; Store base address
-    clrf TEMP_CHAR1 ; Use as digit index counter
 
 print_number_loop:
-    ; Calculate address of current digit
-    movf TEMP_CHAR1, W
-    addwf TEMP_CHAR, W
-    movwf FSR
-    
-    ; Get stored digit and display it
-    movf INDF, W
-    btfsc STATUS, Z ; If digit is 0 (uninitialized)
     movf button_pressed, W ; Use current button_pressed value
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR
-    
-    incf TEMP_CHAR1, F ; Move to next digit
     DECFSZ loop_counter, F ; Decrement remaining count
     goto print_number_loop ; Loop until all digits printed
     return
