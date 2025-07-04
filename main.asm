@@ -86,14 +86,14 @@ setup:
     call LCD_CLR          ; Clear LCD
 
     call print_number_message ; Print "Number 1"
+
     call LCD_L2           ; Move cursor to 2nd line  
     call init_ports       ; Initialize ports and interrupts
       ; Initialize flags
     clrf flags         ; Clear flags
     clrf led_status       ; Clear LED status
-
-    call print_number ; Print the number in button_pressed
     clrf INDEX
+    call print_number ; Print the number in button_pressed
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column 0
 
 main_loop:
@@ -245,6 +245,7 @@ handle_button_result:
     call LCD_CLR            ; Clear LCD
     call print_number_message ; Print "Number 1"
     call LCD_L2             ; Move cursor to 2nd line
+    call print_number       ; Print the current button value
     MoveCursorReg 2, INDEX  ; Move cursor to row 2, column 0
     return
 
@@ -390,16 +391,42 @@ print_number:
     
     ; put the number of digits in w
     movf INDEX, W ; Get the current index
-    sublw D'12' ; Subtract 12 to get the number of digits to print
+    sublw D'12' ; Calculate 12 - INDEX to get remaining digits
     movwf loop_counter ; Store the number of digits to print in loop_counter
+    
+    ; Determine which number array to use based on state
+    movf state, W
+    sublw STATE_FIRST_NUM
+    btfsc STATUS, Z
+    goto print_first_number
+    
+    ; Print second number
+    movlw number_2_char
+    goto print_number_setup
+    
+print_first_number:
+    ; Print first number  
+    movlw number_1_char
+    
+print_number_setup:
+    movwf TEMP_CHAR ; Store base address
+    clrf TEMP_CHAR1 ; Use as digit index counter
 
 print_number_loop:
-    ; move cursor to row1 index 0
+    ; Calculate address of current digit
+    movf TEMP_CHAR1, W
+    addwf TEMP_CHAR, W
+    movwf FSR
     
-    movf button_pressed, W ; Get the number to print
+    ; Get stored digit and display it
+    movf INDF, W
+    btfsc STATUS, Z ; If digit is 0 (uninitialized)
+    movf button_pressed, W ; Use current button_pressed value
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR
-    DECFSZ loop_counter, F ; Decrement index
+    
+    incf TEMP_CHAR1, F ; Move to next digit
+    DECFSZ loop_counter, F ; Decrement remaining count
     goto print_number_loop ; Loop until all digits printed
     return
 
