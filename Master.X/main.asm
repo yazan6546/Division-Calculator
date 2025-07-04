@@ -225,6 +225,18 @@ transition_to_result:
     movwf NUM_BYTES ; Set number of bytes to send via UART
     call UART_SEND ; Send numbers via UART
 
+    movlw result_binary ; Set result binary base addres
+    movlw D'5'
+    movwf NUM_BYTES ; Set number of bytes to send via UART
+    call UART_RECV
+
+    ; Convert result to BCD
+    movlw result_binary ; Set binary input base address
+    movwf INPUT_BASE_ADDR
+    movlw result_bcd ; Set BCD output base address
+    movwf OUTPUT_BASE_ADDR
+    call BIN_TO_BCD_FUNCTION ; Convert binary result to BCD
+
     ; Transition to result state
     movlw STATE_RESULT
     movwf state
