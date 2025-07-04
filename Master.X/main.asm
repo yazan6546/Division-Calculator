@@ -5,11 +5,11 @@
 
     LIST        p=16f877a
     INCLUDE    <p16f877a.INC>
-    INCLUDE    <lcd/LCD_DRIVER.INC>
-    INCLUDE    <lcd/BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
-    INCLUDE   <conversion/binary_to_bcd.inc> ; Include delay routines
-    INCLUDE    <conversion/bcd_to_binary.inc> ; Include BCD to Binary conversion routines
-    INCLUDE    <../Include/UART.inc> ; Include UART routines
+    INCLUDE    <LCD_DRIVER.INC>
+    INCLUDE    <BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
+    INCLUDE   <binary_to_bcd.inc> ; Include delay routines
+    INCLUDE    <bcd_to_binary.inc> ; Include BCD to Binary conversion routines
+    INCLUDE    <UART.inc> ; Include UART routines
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
@@ -223,13 +223,13 @@ transition_to_result:
     movlw number_1_binary ; Set first number binary base address
     movwf BUFFER
     movlw D'10' ; Set number of bytes to send
-    movwf NUM_BYTES ; Set number of bytes to send via UART
+    movwf UAR_NUM_BYTES ; Set number of bytes to send via UART
     call UART_SEND ; Send numbers via UART
 
     movlw result_binary ; Set result binary base addres
     movwf BUFFER
     movlw D'5'
-    movwf NUM_BYTES ; Set number of bytes to send via UART
+    movwf UART_NUM_BYTES ; Set number of bytes to send via UART
     call UART_RECV
 
     ; Convert result to BCD

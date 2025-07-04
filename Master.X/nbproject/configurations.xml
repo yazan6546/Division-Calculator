@@ -12,12 +12,13 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <itemPath>UART.inc</itemPath>
       <itemPath>main.asm</itemPath>
-      <itemPath>lcd/LCD_DRIVER.inc</itemPath>
-      <itemPath>lcd/LCD_PIN_SETTINGS.inc</itemPath>
-      <itemPath>conversion/bcd_to_binary.inc</itemPath>
-      <itemPath>conversion/binary_to_bcd.inc</itemPath>
+      <itemPath>bcd_to_binary.inc</itemPath>
+      <itemPath>BCD_TO_LCD.inc</itemPath>
+      <itemPath>binary_to_bcd.inc</itemPath>
+      <itemPath>LCD_DRIVER.inc</itemPath>
+      <itemPath>LCD_PIN_SETTINGS.inc</itemPath>
+      <itemPath>UART.inc</itemPath>
     </logicalFolder>
     <logicalFolder name="ExternalFiles"
                    displayName="Important Files"
@@ -43,7 +44,7 @@
         <platform>3</platform>
       </toolsSet>
       <packs>
-        <pack name="PIC16Fxxx_DFP" vendor="Microchip" version="1.2.33"/>
+        <pack name="PIC16Fxxx_DFP" vendor="Microchip" version="1.7.162"/>
       </packs>
       <compileType>
         <linkerTool>
