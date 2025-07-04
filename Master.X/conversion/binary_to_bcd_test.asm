@@ -124,7 +124,7 @@ INIT_SYSTEM:
 
 ; ============================================================================
 ; TEST CASE 1: Convert 123456789 (0x075BCD15)
-; Expected BCD: 00 01 23 45 67 89
+; Expected BCD: 00 01 23 45 67 89 (big-endian format)
 ; ============================================================================
 TEST_CASE_1:
     ; Load test data: 123456789 = 0x075BCD15
@@ -157,13 +157,13 @@ TEST_CASE_1:
     call BIN_TO_BCD_FUNCTION
     
     ; Test can be verified by checking TEST1_OUTPUT area
-    ; Should contain: 89 67 45 23 01 00
+    ; Should contain: 00 01 23 45 67 89 (big-endian format)
     
     return
 
 ; ============================================================================
 ; TEST CASE 2: Convert 999999999 (0x3B9AC9FF)
-; Expected BCD: 99 99 99 99 00 00
+; Expected BCD: 00 00 99 99 99 99 (big-endian format)
 ; ============================================================================
 TEST_CASE_2:
     ; Load test data: 999999999 = 0x3B9AC9FF
@@ -196,7 +196,7 @@ TEST_CASE_2:
     call BIN_TO_BCD_FUNCTION
     
     ; Test can be verified by checking TEST2_OUTPUT area
-    ; Should contain: 99 99 99 99 00 00
+    ; Should contain: 00 00 99 99 99 99 (big-endian format)
     
     return
 

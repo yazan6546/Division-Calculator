@@ -4,6 +4,7 @@
 ; Author: ahmadqaimari
 ; Date: 2025-06-28
 ; Purpose: Convert 40-bit binary to 48-bit BCD using double dabble algorithm
+; Output: Big-endian BCD format (MSB at base address + 0, LSB at base address + 5)
 ; ============================================================================
 
 ; ============================================================================
@@ -11,9 +12,10 @@
 ; PURPOSE: Convert 40-bit binary to 48-bit BCD using double dabble
 ; INPUTS: 
 ;   INPUT_BASE_ADDR  - Base address of 5-byte binary input (LSB first)
-;   OUTPUT_BASE_ADDR - Base address of 6-byte BCD output (LSB first)
+;   OUTPUT_BASE_ADDR - Base address of 6-byte BCD output (BIG-ENDIAN: MSB first)
 ; OUTPUTS:
-;   BCD result stored at OUTPUT_BASE_ADDR location
+;   BCD result stored at OUTPUT_BASE_ADDR location in big-endian format
+;   (MSB at OUTPUT_BASE_ADDR+0, LSB at OUTPUT_BASE_ADDR+5)
 ; PRESERVES:
 ;   - Original binary input data (untouched)
 ;   - All registers except W and STATUS
@@ -82,12 +84,12 @@ COPY_INPUT_TO_WORK:
 
 ; ============================================================================
 ; SUBROUTINE: CLEAR_BCD_OUTPUT
-; PURPOSE: Clear BCD output area at parameter-specified address
+; PURPOSE: Clear BCD output area at parameter-specified address (big-endian)
 ; ============================================================================
 CLEAR_BCD_OUTPUT:
     movf OUTPUT_BASE_ADDR, W
     movwf FSR
-    clrf INDF               ; Clear byte 0
+    clrf INDF               ; Clear byte 0 (MSB)
     incf FSR, F
     clrf INDF               ; Clear byte 1
     incf FSR, F
@@ -97,12 +99,12 @@ CLEAR_BCD_OUTPUT:
     incf FSR, F
     clrf INDF               ; Clear byte 4
     incf FSR, F
-    clrf INDF               ; Clear byte 5
+    clrf INDF               ; Clear byte 5 (LSB)
     return
 
 ; ============================================================================
 ; SUBROUTINE: ADD_3_IF_GE_5_FUNC
-; PURPOSE: Add 3 to BCD digits >= 5 in parameter-specified output area
+; PURPOSE: Add 3 to BCD digits >= 5 in parameter-specified output area (big-endian)
 ; ============================================================================
 ADD_3_IF_GE_5_FUNC:
     movf OUTPUT_BASE_ADDR, W
@@ -149,7 +151,7 @@ NEXT_BCD_BYTE:
 
 ; ============================================================================
 ; SUBROUTINE: SHIFT_LEFT_88BIT_FUNC
-; PURPOSE: Shift left 88-bit number (40 binary working + 48 BCD output)
+; PURPOSE: Shift left 88-bit number (40 binary working + 48 BCD output big-endian)
 ; ============================================================================
 SHIFT_LEFT_88BIT_FUNC:
     bcf STATUS, C           
@@ -162,20 +164,21 @@ SHIFT_LEFT_88BIT_FUNC:
     rlf WORK_BIN_3, F       ; Byte 3 - working copy
     rlf WORK_BIN_4, F       ; Byte 4 (MSB) - working copy
     
-    ; Continue shift into BCD output area (parameter-specified address)
+    ; Continue shift into BCD output area (big-endian: LSB at offset +5)
     movf OUTPUT_BASE_ADDR, W
+    addlw .5                ; Point to LSB (byte 5)
     movwf FSR
-    rlf INDF, F             ; BCD Byte 0 (LSB)
-    incf FSR, F
-    rlf INDF, F             ; BCD Byte 1
-    incf FSR, F
-    rlf INDF, F             ; BCD Byte 2
-    incf FSR, F
-    rlf INDF, F             ; BCD Byte 3
-    incf FSR, F
+    rlf INDF, F             ; BCD Byte 5 (LSB)
+    decf FSR, F
     rlf INDF, F             ; BCD Byte 4
-    incf FSR, F
-    rlf INDF, F             ; BCD Byte 5 (MSB)
+    decf FSR, F
+    rlf INDF, F             ; BCD Byte 3
+    decf FSR, F
+    rlf INDF, F             ; BCD Byte 2
+    decf FSR, F
+    rlf INDF, F             ; BCD Byte 1
+    decf FSR, F
+    rlf INDF, F             ; BCD Byte 0 (MSB)
     
     return
 
