@@ -219,6 +219,8 @@ transition_to_result:
     ; Call BCD to Binary conversion
     call BCD_TO_BIN_FUNCTION
 
+    call UART_SEND ; Send first number via UART
+
     ; Transition to result state
     movlw STATE_RESULT
     movwf state
