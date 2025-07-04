@@ -6,8 +6,8 @@ bcd_to_binary CODE
 ; ============================================================================
     cblock 0x60
         ; Function parameters (REQUIRED by bcd_to_binary.inc)
-        BCD_INPUT_BASE_ADDR     ; Base address of 48-bit BCD input
-        BCD_OUTPUT_BASE_ADDR    ; Base address of 40-bit binary output
+        INPUT_BASE_ADDR     ; Base address of 48-bit BCD input
+        OUTPUT_BASE_ADDR    ; Base address of 40-bit binary output
         
         ; Working variables (REQUIRED by bcd_to_binary.inc)
         BIT_COUNT               ; Counter for 40 bits
@@ -91,7 +91,7 @@ REVERSE_CONVERT_LOOP:
     movf FSR_BACKUP, W
     movwf FSR
 
-    call COPY_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
+    call COPY_BCD_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
     return
 
 ; ============================================================================
@@ -106,9 +106,9 @@ REVERSE_CONVERT_LOOP:
 ; ============================================================================
 ; Note: This function is called in BCD_TO_BIN_FUNCTION to save the result
 
-COPY_TO_OUTPUT_BASE_ADDRESS:
+COPY_BCD_TO_OUTPUT_BASE_ADDRESS:
     ; Copy working binary result to output base address
-    movf BCD_OUTPUT_BASE_ADDR, W
+    movf OUTPUT_BASE_ADDR, W
     movwf FSR
     movf WORK_BIN_0, W
     movwf INDF
@@ -134,7 +134,7 @@ COPY_BCD_TO_WORK:
     ; Copy BCD input to working area (BIG-ENDIAN INPUT)
     ; Input format: MSB at base_addr+0, LSB at base_addr+5
     ; Working format: LSB at WORK_BCD_0, MSB at WORK_BCD_5
-    movf BCD_INPUT_BASE_ADDR, W
+    movf INPUT_BASE_ADDR, W
     movwf FSR
     movf INDF, W            ; Get MSB from input[0]
     movwf WORK_BCD_5        ; Store as MSB in working area

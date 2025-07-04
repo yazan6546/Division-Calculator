@@ -184,10 +184,10 @@ transition_to_second_num:
 
     ; Set function parameter
     movlw number_1_bcd
-    movwf BCD_INPUT_BASE_ADDR
+    movwf INPUT_BASE_ADDR
 
     movlw number_1_binary ; Set binary output base address
-    movwf BCD_OUTPUT_BASE_ADDR
+    movwf OUTPUT_BASE_ADDR
     
     ; Call BCD to Binary conversion
     call BCD_TO_BIN_FUNCTION
@@ -209,10 +209,10 @@ transition_to_result:
 
     ; Set function parameter
     movlw number_2_bcd
-    movwf BCD_INPUT_BASE_ADDR
+    movwf INPUT_BASE_ADDR
 
     movlw number_2_binary ; Set binary output base address
-    movwf BCD_OUTPUT_BASE_ADDR
+    movwf OUTPUT_BASE_ADDR
     
     ; Call BCD to Binary conversion
     call BCD_TO_BIN_FUNCTION
