@@ -1,0 +1,8 @@
+_build
+build
+out
+.vscode
+cmake
+dist
+debug
+nbproject/private
