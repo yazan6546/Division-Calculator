@@ -91,7 +91,7 @@ REVERSE_CONVERT_LOOP:
     movf FSR_BACKUP, W
     movwf FSR
 
-    ; call COPY_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
+    call COPY_TO_OUTPUT_BASE_ADDRESS ; Copy result to output base address
     return
 
 ; ============================================================================
