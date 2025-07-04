@@ -27,25 +27,7 @@ INIT_UART
     BSF PIE1, RCIE     ; Enable USART Receive interrupt
     BSF INTCON, PEIE   ; Enable Peripheral Interrupts
     RETURN
-    
-    
-UART_RECV_ISR
-    ; Check if USART RX interrupt occurred
-    BANKSEL PIR1
-    BTFSS PIR1, RCIF
-    GOTO NOT_RX
 
-    MOVF COUNT, W
-    ADDWF BUFFER, W
-    MOVWF FSR
-    ; Read received byte into buffer
-    MOVF RCREG, W
-    MOVWF INDF
-    
-    INCF COUNT
-
-NOT_RX
-    RETFIE             ; Return from interrupt
   
 ; UART receive procedure
 ; input: COUNT: # bytes, BUFFER: address of buffer to receive bytes

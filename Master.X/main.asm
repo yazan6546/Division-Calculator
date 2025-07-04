@@ -8,6 +8,7 @@
     INCLUDE    <lcd/LCD_DRIVER.INC>
     INCLUDE    <lcd/BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
     INCLUDE    <conversion/bcd_to_binary.inc> ; Include BCD to Binary conversion routines
+    INCLUDE    <../Include/UART.inc> ; Include UART routines
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
@@ -90,6 +91,7 @@ setup:
 
     call LCD_L2           ; Move cursor to 2nd line  
     call init_ports       ; Initialize ports and interrupts
+    call INIT_UART ; Initialize UART for debugging
       ; Initialize flags
     clrf flags         ; Clear flags
     clrf led_status       ; Clear LED status
@@ -588,7 +590,7 @@ UART_RECV_ISR:
     MOVWF INDF
     
     INCF COUNT
-    
+
     goto end_isr
 
 
