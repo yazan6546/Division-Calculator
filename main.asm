@@ -54,8 +54,6 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         number_2_bcd      :6 ; BCD representation of number 2
         number_1_binary   :5 ; Binary representation of number 1
         number_2_binary   :5 ; Binary representation of number 2
-        number_1_char     :12 ; ASCII representation of number 1
-        number_2_char     :12 ; ASCII representation of number 2
     endc
 
 
@@ -180,6 +178,15 @@ skip_save:
     return
 
 transition_to_second_num:
+
+    ; Set function parameter
+    movlw number_1_bcd
+    movwf BCD_INPUT_BASE_ADDR
+    
+    ; Call BCD to Binary conversion
+    call BCD_TO_BIN_FUNCTION
+
+
     clrf button_pressed ; Reset button pressed count
     ; Transition from first number to second number
     movlw STATE_SECOND_NUM
@@ -193,6 +200,14 @@ transition_to_second_num:
     return
 
 transition_to_result:
+
+    ; Set function parameter
+    movlw number_2_bcd
+    movwf BCD_INPUT_BASE_ADDR
+    
+    ; Call BCD to Binary conversion
+    call BCD_TO_BIN_FUNCTION
+
     ; Transition to result state
     movlw STATE_RESULT
     movwf state

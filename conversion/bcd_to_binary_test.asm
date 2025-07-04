@@ -14,7 +14,7 @@
 ; ============================================================================
 ; VARIABLE DEFINITIONS
 ; ============================================================================
-    cblock 0x20
+    cblock 0x60
         ; Function parameters (REQUIRED by bcd_to_binary.inc)
         BCD_INPUT_BASE_ADDR     ; Base address of 48-bit BCD input
         
@@ -32,6 +32,8 @@
         WORK_BCD_3
         WORK_BCD_4
         WORK_BCD_5
+
+        BINARY_OUTPUT_BASE_ADDR ; Base address for binary output (REQUIRED by bcd_to_binary.inc)
         
         ; WORK_BIN = Working area AND final output! (REQUIRED by bcd_to_binary.inc)
         WORK_BIN_0              ; Binary result (LSB)
