@@ -4,14 +4,13 @@
 ; Author: ahmadqaimari
 ; Date: 2025-06-28
 ; Purpose: Convert 40-bit binary to 48-bit BCD using double dabble algorithm
-; Note: Updated to accept BIG-ENDIAN binary input (MSB at base_addr+0, LSB at base_addr+4)
 ; ============================================================================
 
 ; ============================================================================
 ; FUNCTION: BIN_TO_BCD_FUNCTION
 ; PURPOSE: Convert 40-bit binary to 48-bit BCD using double dabble
 ; INPUTS: 
-;   INPUT_BASE_ADDR  - Base address of 5-byte binary input (BIG-ENDIAN: MSB at addr+0, LSB at addr+4)
+;   INPUT_BASE_ADDR  - Base address of 5-byte binary input (LSB first)
 ;   OUTPUT_BASE_ADDR - Base address of 6-byte BCD output (LSB first)
 ; OUTPUTS:
 ;   BCD result stored at OUTPUT_BASE_ADDR location
@@ -62,25 +61,23 @@ CONVERT_LOOP:
 ; PURPOSE: Copy input data to working area to preserve original
 ; ============================================================================
 COPY_INPUT_TO_WORK:
-    ; Copy input data to working area to preserve original (BIG-ENDIAN INPUT)
-    ; Input format: MSB at base_addr+0, LSB at base_addr+4
-    ; Working format: LSB at WORK_BIN_0, MSB at WORK_BIN_4
+    ; Copy 5 bytes from input area to working area
     movf INPUT_BASE_ADDR, W
     movwf FSR
-    movf INDF, W            ; Get MSB from input[0]
-    movwf WORK_BIN_4        ; Store as MSB in working area
+    movf INDF, W            ; Get byte 0
+    movwf WORK_BIN_0        ; Save to working copy
     incf FSR, F
-    movf INDF, W            ; Get input[1]
-    movwf WORK_BIN_3        ; Store as working[3]
+    movf INDF, W            ; Get byte 1
+    movwf WORK_BIN_1        ; Save to working copy
     incf FSR, F
-    movf INDF, W            ; Get input[2]
-    movwf WORK_BIN_2        ; Store as working[2]
+    movf INDF, W            ; Get byte 2
+    movwf WORK_BIN_2        ; Save to working copy
     incf FSR, F
-    movf INDF, W            ; Get input[3]
-    movwf WORK_BIN_1        ; Store as working[1]
+    movf INDF, W            ; Get byte 3
+    movwf WORK_BIN_3        ; Save to working copy
     incf FSR, F
-    movf INDF, W            ; Get LSB from input[4]
-    movwf WORK_BIN_0        ; Store as LSB in working area
+    movf INDF, W            ; Get byte 4
+    movwf WORK_BIN_4        ; Save to working copy
     return
 
 ; ============================================================================
