@@ -509,9 +509,22 @@ isr_handler:
     swapf STATUS, W         ; Swap STATUS to W
     movwf STATUS_TEMP       ; Save STATUS    ; Check for Timer1 overflow interrupt
     BANKSEL PIR1
-    btfss PIR1, TMR1IF      ; Check Timer1 overflow flag
-    goto check_button       ; If not set, check button interrupt
+    btfsc PIR1, TMR1IF      ; Check Timer1 overflow flag
+    goto timer_handler       ; If not set, check button interrupt
       ; Handle Timer1 overflow (0.25 second elapsed)
+
+    BANKSEL INTCON
+    btfsc INTCON, INTF      ; Check if external interrupt (button press) occurred
+    goto check_button        ; If set, handle button press
+
+    ; Check if USART RX interrupt occurred
+    BANKSEL PIR1
+    BTFSC PIR1, RCIF
+    goto UART_RECV_ISR       ; If USART RX interrupt, handle it
+
+    goto end_isr            ; If no relevant interrupt, just exit
+
+timer_handler
     bcf PIR1, TMR1IF        ; Clear Timer1 overflow flag
     call reset_timer1       ; Restart timer for next 0.25-second period
     
@@ -562,6 +575,22 @@ check_button:
     bsf PORTB, 1            ; Turn on LED briefly
     call DEL100             ; Short delay
     bcf PORTB, 1            ; Turn off LED
+
+    goto end_isr            ; Exit ISR
+
+
+UART_RECV_ISR:
+    MOVF COUNT, W
+    ADDWF BUFFER, W
+    MOVWF FSR
+    ; Read received byte into buffer
+    MOVF RCREG, W
+    MOVWF INDF
+    
+    INCF COUNT
+    
+    goto end_isr
+
 
 end_isr:
     ; Restore context
