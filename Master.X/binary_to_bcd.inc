@@ -3,7 +3,7 @@ binary_to_bcd CODE
 ; ============================================================================
 ; VARIABLE DEFINITIONS
 ; ============================================================================
-    cblock 0x60
+    cblock 0x40
         ; Function parameters (REQUIRED by binary_to_bcd.inc)
         B2BCD_INPUT_BASE_ADDR     ; Base address of 40-bit binary input
         B2BCD_OUTPUT_BASE_ADDR    ; Base address of 48-bit BCD output
@@ -340,19 +340,19 @@ SHIFT_LEFT_88BIT_FUNC:
     
     ; Shift WORKING COPY of binary part (5 bytes) - start from LSB
     ; This preserves the original input data!
-    rlf WORK_BIN_0, F       ; Byte 0 (LSB) - working copy
-    rlf WORK_BIN_1, F       ; Byte 1 - working copy
-    rlf WORK_BIN_2, F       ; Byte 2 - working copy
-    rlf WORK_BIN_3, F       ; Byte 3 - working copy
-    rlf WORK_BIN_4, F       ; Byte 4 (MSB) - working copy
+    rlf B2BCD_WORK_BIN_0, F       ; Byte 0 (LSB) - working copy
+    rlf B2BCD_WORK_BIN_1, F       ; Byte 1 - working copy
+    rlf B2BCD_WORK_BIN_2, F       ; Byte 2 - working copy
+    rlf B2BCD_WORK_BIN_3, F       ; Byte 3 - working copy
+    rlf B2BCD_WORK_BIN_4, F       ; Byte 4 (MSB) - working copy
     
     ; Continue shift into BCD working area (LSB to MSB)
-    rlf WORK_BCD_0, F       ; BCD Byte 0 (LSB)
-    rlf WORK_BCD_1, F       ; BCD Byte 1
-    rlf WORK_BCD_2, F       ; BCD Byte 2
-    rlf WORK_BCD_3, F       ; BCD Byte 3
-    rlf WORK_BCD_4, F       ; BCD Byte 4
-    rlf WORK_BCD_5, F       ; BCD Byte 5 (MSB)
+    rlf B2BCD_WORK_BCD_0, F       ; BCD Byte 0 (LSB)
+    rlf B2BCD_WORK_BCD_1, F       ; BCD Byte 1
+    rlf B2BCD_WORK_BCD_2, F       ; BCD Byte 2
+    rlf B2BCD_WORK_BCD_3, F       ; BCD Byte 3
+    rlf B2BCD_WORK_BCD_4, F       ; BCD Byte 4
+    rlf B2BCD_WORK_BCD_5, F       ; BCD Byte 5 (MSB)
     
     return
 
@@ -362,27 +362,27 @@ SHIFT_LEFT_88BIT_FUNC:
 ; ============================================================================
 COPY_RESULT_TO_OUTPUT:
     ; Copy BCD result to output address in big-endian format
-    ; WORK_BCD_0 (LSB) -> OUTPUT_BASE_ADDR+5
-    ; WORK_BCD_5 (MSB) -> OUTPUT_BASE_ADDR+0
-    movf OUTPUT_BASE_ADDR, W
+    ; B2BCD_WORK_BCD_0 (LSB) -> B2BCD_OUTPUT_BASE_ADDR+5
+    ; B2BCD_WORK_BCD_5 (MSB) -> B2BCD_OUTPUT_BASE_ADDR+0
+    movf B2BCD_OUTPUT_BASE_ADDR, W
     movwf FSR
-    movf WORK_BCD_5, W      ; Get MSB from working area
-    movwf INDF              ; Store at OUTPUT_BASE_ADDR+0 (MSB position)
+    movf B2BCD_WORK_BCD_5, W      ; Get MSB from working area
+    movwf INDF              ; Store at B2BCD_OUTPUT_BASE_ADDR+0 (MSB position)
     incf FSR, F
-    movf WORK_BCD_4, W
-    movwf INDF              ; Store at OUTPUT_BASE_ADDR+1
+    movf B2BCD_WORK_BCD_4, W
+    movwf INDF              ; Store at B2BCD_OUTPUT_BASE_ADDR+1
     incf FSR, F
-    movf WORK_BCD_3, W
-    movwf INDF              ; Store at OUTPUT_BASE_ADDR+2
+    movf B2BCD_WORK_BCD_3, W
+    movwf INDF              ; Store at B2BCD_OUTPUT_BASE_ADDR+2
     incf FSR, F
-    movf WORK_BCD_2, W
-    movwf INDF              ; Store at OUTPUT_BASE_ADDR+3
+    movf B2BCD_WORK_BCD_2, W
+    movwf INDF              ; Store at B2BCD_OUTPUT_BASE_ADDR+3
     incf FSR, F
-    movf WORK_BCD_1, W
-    movwf INDF              ; Store at OUTPUT_BASE_ADDR+4
+    movf B2BCD_WORK_BCD_1, W
+    movwf INDF              ; Store at B2BCD_OUTPUT_BASE_ADDR+4
     incf FSR, F
-    movf WORK_BCD_0, W      ; Get LSB from working area
-    movwf INDF              ; Store at OUTPUT_BASE_ADDR+5 (LSB position)
+    movf B2BCD_WORK_BCD_0, W      ; Get LSB from working area
+    movwf INDF              ; Store at B2BCD_OUTPUT_BASE_ADDR+5 (LSB position)
     return
 
 ; End of binary_to_bcd.inc
