@@ -234,9 +234,9 @@ transition_to_result:
 
     ; Convert result to BCD
     movlw result_binary ; Set binary input base address
-    movwf INPUT_BASE_ADDR
+    movwf B2BCD_INPUT_BASE_ADDR
     movlw result_bcd ; Set BCD output base address
-    movwf OUTPUT_BASE_ADDR
+    movwf B2BCD_OUTPUT_BASE_ADDR
     call BIN_TO_BCD_FUNCTION ; Convert binary result to BCD
 
     ; Transition to result state
