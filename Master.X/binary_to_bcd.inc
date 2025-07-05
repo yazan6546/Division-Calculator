@@ -3,7 +3,7 @@ binary_to_bcd CODE
 ; ============================================================================
 ; VARIABLE DEFINITIONS
 ; ============================================================================
-    cblock 0x40
+    cblock 0x60
         ; Function parameters (REQUIRED by binary_to_bcd.inc)
         B2BCD_INPUT_BASE_ADDR     ; Base address of 40-bit binary input
         B2BCD_OUTPUT_BASE_ADDR    ; Base address of 48-bit BCD output
