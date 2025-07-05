@@ -460,12 +460,28 @@ print_number:
     movwf loop_counter ; Store the number of digits to print in loop_counter
 
 print_number_loop:
+    ; test if loop counter is 6 (decimal point position)
+    movf loop_counter, W ; Get the current loop counter value
+    sublw D'6' ; Check if we are at the 6th digit
+    btfsc STATUS, Z ; If loop_counter == 6, we are at the decimal point position
+    goto print_decimal_point ; If at 6th digit, print decimal point
+
+print_char:
+
     movf button_pressed, W ; Use current button_pressed value
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR
     DECFSZ loop_counter, F ; Decrement remaining count
     goto print_number_loop ; Loop until all digits printed
     return
+
+print_decimal_point:
+
+    ; Print decimal point at the 6th position
+    movlw '.' ; Load decimal point character
+    call LCD_CHARD ; convert to ascii
+    call LCD_CHAR ; Display decimal point
+    goto print_char ; Continue printing remaining digits
 
 
 init_ports:
