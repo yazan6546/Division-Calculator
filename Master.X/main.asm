@@ -113,7 +113,16 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf flags, TIMER
-    
+
+    btfsc PORTB, 0 ; Check if button is pressed
+    goto button_not_pressed ; If not pressed, skip handling
+    movlw D'6'
+    movwf INDEX ; skip to 6th digit
+    MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
+    return         ; If not pressed, just return
+    ; Reset timer and overflow counter
+
+button_not_pressed:    
     ; Check current state and handle accordingly
     movf state, W
     sublw STATE_FIRST_NUM
@@ -124,9 +133,13 @@ handle_timer:
     sublw STATE_SECOND_NUM
     btfsc STATUS, Z
     goto handle_timer_second_num
+exit_handle_timer:
     
     ; If in result state, just return
     return
+
+
+
 
 handle_timer_first_num:
     ; Check if we've reached 12 digits for first number
