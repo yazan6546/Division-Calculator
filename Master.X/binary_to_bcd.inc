@@ -1,3 +1,36 @@
+binary_to_bcd CODE
+
+; ============================================================================
+; VARIABLE DEFINITIONS
+; ============================================================================
+    cblock 0x60
+        ; Function parameters (REQUIRED by binary_to_bcd.inc)
+        B2BCD_INPUT_BASE_ADDR     ; Base address of 40-bit binary input
+        B2BCD_OUTPUT_BASE_ADDR    ; Base address of 48-bit BCD output
+        
+        ; Working variables (REQUIRED by binary_to_bcd.inc)
+        B2BCD_BIT_COUNT           ; Counter for 40 bits
+        B2BCD_TEMP_REG            ; Temporary register
+        B2BCD_CURRENT_ADDR        ; Current address pointer
+        B2BCD_BYTE_COUNT          ; Byte counter for loops
+        B2BCD_FSR_BACKUP          ; Backup for FSR register
+        
+        ; Working copy of binary data (REQUIRED by binary_to_bcd.inc)
+        B2BCD_WORK_BIN_0          ; Working copy of binary input (LSB)
+        B2BCD_WORK_BIN_1          ; Working copy of binary input
+        B2BCD_WORK_BIN_2          ; Working copy of binary input
+        B2BCD_WORK_BIN_3          ; Working copy of binary input
+        B2BCD_WORK_BIN_4          ; Working copy of binary input (MSB)
+        
+        ; WORK_BCD = Working area AND final output! (REQUIRED by binary_to_bcd.inc)
+        B2BCD_WORK_BCD_0          ; BCD result (LSB)
+        B2BCD_WORK_BCD_1          ; BCD result
+        B2BCD_WORK_BCD_2          ; BCD result
+        B2BCD_WORK_BCD_3          ; BCD result
+        B2BCD_WORK_BCD_4          ; BCD result
+        B2BCD_WORK_BCD_5          ; BCD result (MSB)
+    endc
+
 ; ============================================================================
 ; BINARY TO BCD CONVERSION LIBRARY
 ; File: binary_to_bcd.inc
@@ -11,49 +44,55 @@
 ; FUNCTION: BIN_TO_BCD_FUNCTION
 ; PURPOSE: Convert 40-bit binary to 48-bit BCD using double dabble
 ; INPUTS: 
-;   INPUT_BASE_ADDR  - Base address of 5-byte binary input (LSB first)
-;   OUTPUT_BASE_ADDR - Base address of 6-byte BCD output (BIG-ENDIAN: MSB first)
+;   B2BCD_INPUT_BASE_ADDR  - Base address of 5-byte binary input (LSB first)
+;   B2BCD_OUTPUT_BASE_ADDR - Base address of 6-byte BCD output (BIG-ENDIAN: MSB first)
 ; OUTPUTS:
-;   BCD result stored at OUTPUT_BASE_ADDR location in big-endian format
-;   (MSB at OUTPUT_BASE_ADDR+0, LSB at OUTPUT_BASE_ADDR+5)
+;   BCD result stored at B2BCD_OUTPUT_BASE_ADDR location in big-endian format
+;   (MSB at B2BCD_OUTPUT_BASE_ADDR+0, LSB at B2BCD_OUTPUT_BASE_ADDR+5)
+;   Working result also available in B2BCD_WORK_BCD_0 to B2BCD_WORK_BCD_5 (LSB to MSB)
 ; PRESERVES:
 ;   - Original binary input data (untouched)
 ;   - All registers except W and STATUS
 ; WORKING:
-;   - Uses WORK_BIN as sacrificial working copy
+;   - Uses B2BCD_WORK_BIN as sacrificial working copy of input
+;   - Uses B2BCD_WORK_BCD as working area for BCD result
 ; REQUIREMENTS:
-;   - Variables INPUT_BASE_ADDR, OUTPUT_BASE_ADDR must be defined
-;   - Working variables BIT_COUNT, CURRENT_ADDR, BYTE_COUNT, FSR_BACKUP must be defined
-;   - Working area WORK_BIN_0 through WORK_BIN_4 must be defined
+;   - Variables B2BCD_INPUT_BASE_ADDR, B2BCD_OUTPUT_BASE_ADDR must be defined
+;   - Working variables B2BCD_BIT_COUNT, B2BCD_CURRENT_ADDR, B2BCD_BYTE_COUNT, B2BCD_FSR_BACKUP, B2BCD_TEMP_REG must be defined
+;   - Working area B2BCD_WORK_BIN_0 through B2BCD_WORK_BIN_4 must be defined
+;   - Working area B2BCD_WORK_BCD_0 through B2BCD_WORK_BCD_5 must be defined
 ; ============================================================================
 BIN_TO_BCD_FUNCTION:
     ; Save FSR register
     movf FSR, W
-    movwf FSR_BACKUP
+    movwf B2BCD_FSR_BACKUP
     
     ; Copy input data to working area to preserve original
     call COPY_INPUT_TO_WORK
     
-    ; Clear BCD output area (6 bytes) at parameter-specified address
-    call CLEAR_BCD_OUTPUT
+    ; Clear BCD working area (6 bytes)
+    call CLEAR_BCD_WORKING
     
     ; Initialize bit counter
     movlw .40
-    movwf BIT_COUNT
+    movwf B2BCD_BIT_COUNT
     
 CONVERT_LOOP:
     ; Check BCD digits and add 3 if >= 5
     call ADD_3_IF_GE_5_FUNC
     
     ; Shift left the entire 88-bit number (40 binary + 48 BCD)
-    ; Working with WORK_BIN copies + parameter-specified BCD output
+    ; Working with B2BCD_WORK_BIN copies + B2BCD_WORK_BCD variables
     call SHIFT_LEFT_88BIT_FUNC
     
-    decfsz BIT_COUNT, F
+    decfsz B2BCD_BIT_COUNT, F
     goto CONVERT_LOOP
     
+    ; Copy result from working area to output address (big-endian)
+    call COPY_RESULT_TO_OUTPUT
+    
     ; Restore FSR register
-    movf FSR_BACKUP, W
+    movf B2BCD_FSR_BACKUP, W
     movwf FSR
     
     return
@@ -64,94 +103,237 @@ CONVERT_LOOP:
 ; ============================================================================
 COPY_INPUT_TO_WORK:
     ; Copy 5 bytes from input area to working area
-    movf INPUT_BASE_ADDR, W
+    movf B2BCD_INPUT_BASE_ADDR, W
     movwf FSR
     movf INDF, W            ; Get byte 0
-    movwf WORK_BIN_0        ; Save to working copy
+    movwf B2BCD_WORK_BIN_0        ; Save to working copy
     incf FSR, F
     movf INDF, W            ; Get byte 1
-    movwf WORK_BIN_1        ; Save to working copy
+    movwf B2BCD_WORK_BIN_1        ; Save to working copy
     incf FSR, F
     movf INDF, W            ; Get byte 2
-    movwf WORK_BIN_2        ; Save to working copy
+    movwf B2BCD_WORK_BIN_2        ; Save to working copy
     incf FSR, F
     movf INDF, W            ; Get byte 3
-    movwf WORK_BIN_3        ; Save to working copy
+    movwf B2BCD_WORK_BIN_3        ; Save to working copy
     incf FSR, F
     movf INDF, W            ; Get byte 4
-    movwf WORK_BIN_4        ; Save to working copy
+    movwf B2BCD_WORK_BIN_4        ; Save to working copy
     return
 
 ; ============================================================================
-; SUBROUTINE: CLEAR_BCD_OUTPUT
-; PURPOSE: Clear BCD output area at parameter-specified address (big-endian)
+; SUBROUTINE: CLEAR_BCD_WORKING
+; PURPOSE: Clear BCD working area variables
 ; ============================================================================
-CLEAR_BCD_OUTPUT:
-    movf OUTPUT_BASE_ADDR, W
-    movwf FSR
-    clrf INDF               ; Clear byte 0 (MSB)
-    incf FSR, F
-    clrf INDF               ; Clear byte 1
-    incf FSR, F
-    clrf INDF               ; Clear byte 2
-    incf FSR, F
-    clrf INDF               ; Clear byte 3
-    incf FSR, F
-    clrf INDF               ; Clear byte 4
-    incf FSR, F
-    clrf INDF               ; Clear byte 5 (LSB)
+CLEAR_BCD_WORKING:
+    clrf B2BCD_WORK_BCD_0         ; Clear BCD working area (LSB)
+    clrf B2BCD_WORK_BCD_1
+    clrf B2BCD_WORK_BCD_2
+    clrf B2BCD_WORK_BCD_3
+    clrf B2BCD_WORK_BCD_4
+    clrf B2BCD_WORK_BCD_5         ; Clear BCD working area (MSB)
     return
 
 ; ============================================================================
 ; SUBROUTINE: ADD_3_IF_GE_5_FUNC
-; PURPOSE: Add 3 to BCD digits >= 5 in parameter-specified output area (big-endian)
+; PURPOSE: Add 3 to BCD digits >= 5 in working BCD variables
 ; ============================================================================
 ADD_3_IF_GE_5_FUNC:
-    movf OUTPUT_BASE_ADDR, W
-    movwf CURRENT_ADDR
-    movlw .6
-    movwf BYTE_COUNT
+    ; Check WORK_BCD_0 (LSB)
+    call CHECK_AND_ADD_BYTE_0
+    ; Check WORK_BCD_1
+    call CHECK_AND_ADD_BYTE_1
+    ; Check WORK_BCD_2
+    call CHECK_AND_ADD_BYTE_2
+    ; Check WORK_BCD_3
+    call CHECK_AND_ADD_BYTE_3
+    ; Check WORK_BCD_4
+    call CHECK_AND_ADD_BYTE_4
+    ; Check WORK_BCD_5 (MSB)
+    call CHECK_AND_ADD_BYTE_5
     
-CHECK_NEXT_BCD_BYTE:
-    movf CURRENT_ADDR, W
-    movwf FSR
-    
-    ; Check lower nibble
-    movf INDF, W
+    return
+
+CHECK_AND_ADD_BYTE_0:
+    ; Check lower nibble of B2BCD_WORK_BCD_0
+    movf B2BCD_WORK_BCD_0, W
     andlw 0x0F              ; Mask lower nibble
     sublw .4                ; Subtract from 4
     btfss STATUS, C         ; Skip if carry set (digit <= 4)
-    goto ADD3_LOWER_NIBBLE
+    goto ADD3_LOWER_0
     
-CHECK_UPPER_NIBBLE:
-    ; Check upper nibble
-    movf INDF, W
-    swapf INDF, W           ; Swap nibbles
+    ; Check upper nibble of B2BCD_WORK_BCD_0
+    swapf B2BCD_WORK_BCD_0, W
     andlw 0x0F              ; Mask lower nibble (was upper)
     sublw .4                ; Subtract from 4
     btfss STATUS, C         ; Skip if carry set (digit <= 4)
-    goto ADD3_UPPER_NIBBLE
-    goto NEXT_BCD_BYTE
+    goto ADD3_UPPER_0
+    return
     
-ADD3_LOWER_NIBBLE:
+ADD3_LOWER_0:
     movlw 0x03
-    addwf INDF, F           
-    goto CHECK_UPPER_NIBBLE
+    addwf B2BCD_WORK_BCD_0, F
+    ; Check upper nibble
+    swapf B2BCD_WORK_BCD_0, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_0
+    return
     
-ADD3_UPPER_NIBBLE:
-    movlw 0x30              
-    addwf INDF, F           
+ADD3_UPPER_0:
+    movlw 0x30
+    addwf B2BCD_WORK_BCD_0, F
+    return
+
+CHECK_AND_ADD_BYTE_1:
+    movf B2BCD_WORK_BCD_1, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_LOWER_1
     
-NEXT_BCD_BYTE:
-    incf CURRENT_ADDR, F    
-    decfsz BYTE_COUNT, F    
-    goto CHECK_NEXT_BCD_BYTE
+    swapf B2BCD_WORK_BCD_1, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_1
+    return
     
+ADD3_LOWER_1:
+    movlw 0x03
+    addwf B2BCD_WORK_BCD_1, F
+    swapf B2BCD_WORK_BCD_1, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_1
+    return
+    
+ADD3_UPPER_1:
+    movlw 0x30
+    addwf B2BCD_WORK_BCD_1, F
+    return
+
+CHECK_AND_ADD_BYTE_2:
+    movf WORK_BCD_2, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_LOWER_2
+    
+    swapf WORK_BCD_2, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_2
+    return
+    
+ADD3_LOWER_2:
+    movlw 0x03
+    addwf WORK_BCD_2, F
+    swapf WORK_BCD_2, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_2
+    return
+    
+ADD3_UPPER_2:
+    movlw 0x30
+    addwf WORK_BCD_2, F
+    return
+
+CHECK_AND_ADD_BYTE_3:
+    movf WORK_BCD_3, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_LOWER_3
+    
+    swapf WORK_BCD_3, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_3
+    return
+    
+ADD3_LOWER_3:
+    movlw 0x03
+    addwf WORK_BCD_3, F
+    swapf WORK_BCD_3, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_3
+    return
+    
+ADD3_UPPER_3:
+    movlw 0x30
+    addwf WORK_BCD_3, F
+    return
+
+CHECK_AND_ADD_BYTE_4:
+    movf WORK_BCD_4, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_LOWER_4
+    
+    swapf WORK_BCD_4, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_4
+    return
+    
+ADD3_LOWER_4:
+    movlw 0x03
+    addwf WORK_BCD_4, F
+    swapf WORK_BCD_4, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_4
+    return
+    
+ADD3_UPPER_4:
+    movlw 0x30
+    addwf WORK_BCD_4, F
+    return
+
+CHECK_AND_ADD_BYTE_5:
+    movf WORK_BCD_5, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_LOWER_5
+    
+    swapf WORK_BCD_5, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_5
+    return
+    
+ADD3_LOWER_5:
+    movlw 0x03
+    addwf WORK_BCD_5, F
+    swapf WORK_BCD_5, W
+    andlw 0x0F
+    sublw .4
+    btfss STATUS, C
+    goto ADD3_UPPER_5
+    return
+    
+ADD3_UPPER_5:
+    movlw 0x30
+    addwf WORK_BCD_5, F
     return
 
 ; ============================================================================
 ; SUBROUTINE: SHIFT_LEFT_88BIT_FUNC
-; PURPOSE: Shift left 88-bit number (40 binary working + 48 BCD output big-endian)
+; PURPOSE: Shift left 88-bit number (40 binary working + 48 BCD working)
 ; ============================================================================
 SHIFT_LEFT_88BIT_FUNC:
     bcf STATUS, C           
@@ -164,22 +346,43 @@ SHIFT_LEFT_88BIT_FUNC:
     rlf WORK_BIN_3, F       ; Byte 3 - working copy
     rlf WORK_BIN_4, F       ; Byte 4 (MSB) - working copy
     
-    ; Continue shift into BCD output area (big-endian: LSB at offset +5)
-    movf OUTPUT_BASE_ADDR, W
-    addlw .5                ; Point to LSB (byte 5)
-    movwf FSR
-    rlf INDF, F             ; BCD Byte 5 (LSB)
-    decf FSR, F
-    rlf INDF, F             ; BCD Byte 4
-    decf FSR, F
-    rlf INDF, F             ; BCD Byte 3
-    decf FSR, F
-    rlf INDF, F             ; BCD Byte 2
-    decf FSR, F
-    rlf INDF, F             ; BCD Byte 1
-    decf FSR, F
-    rlf INDF, F             ; BCD Byte 0 (MSB)
+    ; Continue shift into BCD working area (LSB to MSB)
+    rlf WORK_BCD_0, F       ; BCD Byte 0 (LSB)
+    rlf WORK_BCD_1, F       ; BCD Byte 1
+    rlf WORK_BCD_2, F       ; BCD Byte 2
+    rlf WORK_BCD_3, F       ; BCD Byte 3
+    rlf WORK_BCD_4, F       ; BCD Byte 4
+    rlf WORK_BCD_5, F       ; BCD Byte 5 (MSB)
     
+    return
+
+; ============================================================================
+; SUBROUTINE: COPY_RESULT_TO_OUTPUT
+; PURPOSE: Copy BCD result from working variables to output address (big-endian)
+; ============================================================================
+COPY_RESULT_TO_OUTPUT:
+    ; Copy BCD result to output address in big-endian format
+    ; WORK_BCD_0 (LSB) -> OUTPUT_BASE_ADDR+5
+    ; WORK_BCD_5 (MSB) -> OUTPUT_BASE_ADDR+0
+    movf OUTPUT_BASE_ADDR, W
+    movwf FSR
+    movf WORK_BCD_5, W      ; Get MSB from working area
+    movwf INDF              ; Store at OUTPUT_BASE_ADDR+0 (MSB position)
+    incf FSR, F
+    movf WORK_BCD_4, W
+    movwf INDF              ; Store at OUTPUT_BASE_ADDR+1
+    incf FSR, F
+    movf WORK_BCD_3, W
+    movwf INDF              ; Store at OUTPUT_BASE_ADDR+2
+    incf FSR, F
+    movf WORK_BCD_2, W
+    movwf INDF              ; Store at OUTPUT_BASE_ADDR+3
+    incf FSR, F
+    movf WORK_BCD_1, W
+    movwf INDF              ; Store at OUTPUT_BASE_ADDR+4
+    incf FSR, F
+    movf WORK_BCD_0, W      ; Get LSB from working area
+    movwf INDF              ; Store at OUTPUT_BASE_ADDR+5 (LSB position)
     return
 
 ; End of binary_to_bcd.inc
