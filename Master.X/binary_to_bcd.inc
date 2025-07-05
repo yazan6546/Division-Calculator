@@ -216,13 +216,13 @@ ADD3_UPPER_1:
     return
 
 CHECK_AND_ADD_BYTE_2:
-    movf WORK_BCD_2, W
+    movf B2BCD_WORK_BCD_2, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
     goto ADD3_LOWER_2
     
-    swapf WORK_BCD_2, W
+    swapf B2BCD_WORK_BCD_2, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -231,8 +231,8 @@ CHECK_AND_ADD_BYTE_2:
     
 ADD3_LOWER_2:
     movlw 0x03
-    addwf WORK_BCD_2, F
-    swapf WORK_BCD_2, W
+    addwf B2BCD_WORK_BCD_2, F
+    swapf B2BCD_WORK_BCD_2, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -241,17 +241,17 @@ ADD3_LOWER_2:
     
 ADD3_UPPER_2:
     movlw 0x30
-    addwf WORK_BCD_2, F
+    addwf B2BCD_WORK_BCD_2, F
     return
 
 CHECK_AND_ADD_BYTE_3:
-    movf WORK_BCD_3, W
+    movf B2BCD_WORK_BCD_3, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
     goto ADD3_LOWER_3
     
-    swapf WORK_BCD_3, W
+    swapf B2BCD_WORK_BCD_3, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -260,8 +260,8 @@ CHECK_AND_ADD_BYTE_3:
     
 ADD3_LOWER_3:
     movlw 0x03
-    addwf WORK_BCD_3, F
-    swapf WORK_BCD_3, W
+    addwf B2BCD_WORK_BCD_3, F
+    swapf B2BCD_WORK_BCD_3, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -270,17 +270,17 @@ ADD3_LOWER_3:
     
 ADD3_UPPER_3:
     movlw 0x30
-    addwf WORK_BCD_3, F
+    addwf B2BCD_WORK_BCD_3, F
     return
 
 CHECK_AND_ADD_BYTE_4:
-    movf WORK_BCD_4, W
+    movf B2BCD_WORK_BCD_4, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
     goto ADD3_LOWER_4
     
-    swapf WORK_BCD_4, W
+    swapf B2BCD_WORK_BCD_4, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -289,8 +289,8 @@ CHECK_AND_ADD_BYTE_4:
     
 ADD3_LOWER_4:
     movlw 0x03
-    addwf WORK_BCD_4, F
-    swapf WORK_BCD_4, W
+    addwf B2BCD_WORK_BCD_4, F
+    swapf B2BCD_WORK_BCD_4, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -299,17 +299,17 @@ ADD3_LOWER_4:
     
 ADD3_UPPER_4:
     movlw 0x30
-    addwf WORK_BCD_4, F
+    addwf B2BCD_WORK_BCD_4, F
     return
 
 CHECK_AND_ADD_BYTE_5:
-    movf WORK_BCD_5, W
+    movf B2BCD_WORK_BCD_5, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
     goto ADD3_LOWER_5
     
-    swapf WORK_BCD_5, W
+    swapf B2BCD_WORK_BCD_5, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -318,8 +318,8 @@ CHECK_AND_ADD_BYTE_5:
     
 ADD3_LOWER_5:
     movlw 0x03
-    addwf WORK_BCD_5, F
-    swapf WORK_BCD_5, W
+    addwf B2BCD_WORK_BCD_5, F
+    swapf B2BCD_WORK_BCD_5, W
     andlw 0x0F
     sublw .4
     btfss STATUS, C
@@ -328,7 +328,7 @@ ADD3_LOWER_5:
     
 ADD3_UPPER_5:
     movlw 0x30
-    addwf WORK_BCD_5, F
+    addwf B2BCD_WORK_BCD_5, F
     return
 
 ; ============================================================================
