@@ -12,33 +12,17 @@
     __CONFIG _CP_OFF & _WDT_OFF & _BODEN_OFF & _PWRTE_ON & _HS_OSC & _WRT_OFF & _LVP_OFF & _CPD_OFF
 
 ; ============================================================================
-; VARIABLE DEFINITIONS
-; ============================================================================
-    cblock 0x20
-        ; Function parameters (REQUIRED by binary_to_bcd.inc)
-        INPUT_BASE_ADDR     ; Base address of 40-bit binary input
-        OUTPUT_BASE_ADDR    ; Base address of 48-bit BCD output
-        
-        ; Working variables (REQUIRED by binary_to_bcd.inc)
-        BIT_COUNT           ; Counter for 40 bits
-        TEMP_REG            ; Temporary register
-        CURRENT_ADDR        ; Current address pointer
-        BYTE_COUNT          ; Byte counter for loops
-        FSR_BACKUP          ; Backup for FSR register
-    endc
-    
-    cblock 0x70
-        ; Working copies (REQUIRED by binary_to_bcd.inc)
-        WORK_BIN_0          ; Working copy of binary input (gets consumed)
-        WORK_BIN_1
-        WORK_BIN_2
-        WORK_BIN_3
-        WORK_BIN_4
-    endc
-
-; ============================================================================
 ; TEST DATA AREAS
 ; ============================================================================
+    cblock 0x20
+        ; Test Case 1: 123456789 (0x075BCD15)
+        TEST1_INPUT
+        TEST1_INPUT_1
+        TEST1_INPUT_2
+        TEST1_INPUT_3
+        TEST1_INPUT_4
+    endc
+    
     cblock 0x30
         ; Test Case 1: 123456789 (0x075BCD15)
         TEST1_INPUT
@@ -149,9 +133,9 @@ TEST_CASE_1:
     
     ; Set function parameters
     movlw TEST1_INPUT
-    movwf INPUT_BASE_ADDR
+    movwf B2BCD_INPUT_BASE_ADDR
     movlw TEST1_OUTPUT
-    movwf OUTPUT_BASE_ADDR
+    movwf B2BCD_OUTPUT_BASE_ADDR
     
     ; Call conversion function
     call BIN_TO_BCD_FUNCTION
@@ -188,9 +172,9 @@ TEST_CASE_2:
     
     ; Set function parameters
     movlw TEST2_INPUT
-    movwf INPUT_BASE_ADDR
+    movwf B2BCD_INPUT_BASE_ADDR
     movlw TEST2_OUTPUT
-    movwf OUTPUT_BASE_ADDR
+    movwf B2BCD_OUTPUT_BASE_ADDR
     
     ; Call conversion function
     call BIN_TO_BCD_FUNCTION
