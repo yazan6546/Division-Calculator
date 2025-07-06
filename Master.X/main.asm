@@ -176,19 +176,50 @@ handle_button_held:
     
     return
 
+
+save_remaining_digits:
+    ; Save remaining digits in button_pressed
+    movf INDEX, W
+    sublw D'12' ; Calculate remaining digits to save
+    movwf loop_counter ; Store the number of digits to save in loop_counter
+
+    ; Check if we are in loop state
+    btfsc flags, LOOP_STATE
+    goto finish_state_handling ; If in loop state, just finish handling
+
+
+loop_save_remaining_digits:
+
+    movf TEMP_CHAR, w
+    call handle_timer_common ; Save the remaining digits in button_pressed
+    decfsz loop_counter, F ; Decrement loop_counter
+    goto loop_save_remaining_digits ; Loop until all digits printed
+    return
+    
+finish_state_handling:
+    return
 button_held_first_int:
     ; Transition from first number integer to decimal part
+    movf number_1_bcd, w
+    movwf TEMP_CHAR ; Save current number in TEMP_CHAR
+    call save_remaining_digits ; Save remaining digits in button_pressed
+
     movlw STATE_FIRST_NUM_DEC
     movwf state
     movlw D'6'
     movwf INDEX
     MoveCursorReg 2, INDEX
+
     return
 
 button_held_first_dec:
     ; Transition from first number decimal to second number integer
     movlw STATE_SECOND_NUM_INT
     movwf state
+
+    movlw number_1_bcd
+    movwf TEMP_CHAR ; Save current number in TEMP_CHAR
+    call save_remaining_digits
     clrf INDEX
     bcf flags, LOOP_STATE   ; Clear loop state for new number
     clrf button_pressed ; Reset button pressed count
@@ -197,10 +228,14 @@ button_held_first_dec:
     call LCD_L2
     call print_number
     call LCD_L2
+
     return
 
 button_held_second_int:
     ; Transition from second number integer to decimal part
+    movlw number_2_bcd
+    movwf TEMP_CHAR ; Save current number in TEMP_CHAR
+    call save_remaining_digits ; Save remaining digits in button_pressed
     movlw STATE_SECOND_NUM_DEC
     movwf state
     movlw D'6'
@@ -210,6 +245,9 @@ button_held_second_int:
 
 button_held_second_dec:
     ; Transition from second number decimal to result
+    movlw number_2_bcd
+    movwf TEMP_CHAR ; Save current number in TEMP_CHAR
+    call save_remaining_digits ; Save remaining digits in button_pressed
     call LCD_CLR
     call LCD_L1
     movlw '='
