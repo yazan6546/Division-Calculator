@@ -241,9 +241,9 @@ wrap_to_zero_first_int:
     return
 
 handle_timer_first_num_dec:
-    ; Check if we've reached 12 digits for first number decimal part
+    ; Check if we've reached last decimal digit (INDEX == 11)
     movf INDEX, W
-    sublw D'12'
+    sublw D'11'
     btfsc STATUS, Z
     goto wrap_to_six_first_dec
     
@@ -278,9 +278,9 @@ wrap_to_zero_second_int:
     return
 
 handle_timer_second_num_dec:
-    ; Check if we've reached 12 digits for second number decimal part
+    ; Check if we've reached last decimal digit (INDEX == 11)
     movf INDEX, W
-    sublw D'12'
+    sublw D'11'
     btfsc STATUS, Z
     goto wrap_to_six_second_dec
     

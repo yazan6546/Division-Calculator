@@ -213,14 +213,13 @@ MoveCursorReg macro row, colreg
 	movf colreg, w         ; Get column register value
 	movwf TEMP_TING ; Save it temporarily
 
-	; check if colreg is 6 (decimal point)
-	; if colreg is 6, we increment by one to skip
-
-	; the decimal point position
+	; check if colreg is >= 6 (decimal digits)
+	; if colreg >= 6, we increment by one to skip the decimal point position
 	movlw 0x06            ; Load W with 6
-	subwf colreg, w       ; Subtract colreg from 6
-	btfsc STATUS, C       ; Check if colreg == 6
-	incf colreg, f       ; If not, increment colreg
+	subwf colreg, w       ; Subtract 6 from colreg (W = colreg - 6)
+	btfss STATUS, C       ; Skip if colreg >= 6 (C=1 means colreg >= 6)
+	goto $+2              ; If colreg < 6, don't increment (skip next instruction)
+	incf colreg, f        ; If colreg >= 6, increment to skip decimal point
 
     ; Get row base address (assembly time check)
     if row == 1
@@ -234,9 +233,9 @@ MoveCursorReg macro row, colreg
     
     ; Runtime bounds checking for column (0-15)
     movf colreg, w
-    sublw .12               ; W = 11 - colreg  
-    btfss STATUS, C           ; Skip if colreg <= 11
-    movlw .12                 ; If colreg > 11, use 11
+    sublw .12               ; W = 12 - colreg  
+    btfss STATUS, C           ; Skip if colreg <= 12
+    movlw .12                 ; If colreg > 12, use 12
     btfss STATUS, C
     movwf colreg              ; Update colreg with max value
     
