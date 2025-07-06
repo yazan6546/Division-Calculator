@@ -200,7 +200,7 @@ finish_state_handling:
     return
 button_held_first_int:
     ; Transition from first number integer to decimal part
-    movf number_1_bcd, w
+    movlw number_1_bcd
     movwf TEMP_CHAR ; Save current number in TEMP_CHAR
     call save_remaining_digits ; Save remaining digits in button_pressed
 
