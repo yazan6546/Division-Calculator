@@ -222,6 +222,7 @@ MUL_BY_M
     CALL DIV
           
 EXIT_DIV
+    BCF REM_HANDLE, 0
     RETURN
 
     
@@ -241,3 +242,4 @@ MUL_LOOP
     
 
 
+ 
