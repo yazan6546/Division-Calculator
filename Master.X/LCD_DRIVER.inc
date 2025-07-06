@@ -84,7 +84,7 @@ LCDINS:
 	ANDLW 0xF0 ;CLEAR LSB OF W REG (THE LSB OF W REG IS THE LSB OF THE INSTRUCTION)
 	MOVWF LCD_PORT ;PUT INSTAUCTION'S MSB TO THE DATA BUS
 	BCF LCD_PORT, LCD_RS ;SET RS PIN LOW TO SELECT INSTRUCTION REGISTER
-	CALL PULSE_E ;PULSE LCD_E
+	CALL PULSE_E ;PULSE LCD_EF
 
 	SWAPF LCDTEMP, W ;SWAP LSB AND MSB
 
@@ -219,7 +219,7 @@ MoveCursorReg macro row, colreg
 	; the decimal point position
 	movlw 0x06            ; Load W with 6
 	subwf colreg, w       ; Subtract colreg from 6
-	btfsc STATUS, Z       ; Check if colreg == 6
+	btfsc STATUS, C       ; Check if colreg == 6
 	incf colreg, f       ; If not, increment colreg
 
     ; Get row base address (assembly time check)
