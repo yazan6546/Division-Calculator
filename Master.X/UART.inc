@@ -1,8 +1,8 @@
 UART_DATA UDATA
     
-BUFFER EQU 0x40
-NUM_BYTES EQU 0x41
-COUNT EQU 0x42
+BUFFER EQU 0x70
+UART_NUM_BYTES  EQU 0x71
+COUNT EQU 0x72
  
 UART_CODE CODE 
  
@@ -27,25 +27,7 @@ INIT_UART
     BSF PIE1, RCIE     ; Enable USART Receive interrupt
     BSF INTCON, PEIE   ; Enable Peripheral Interrupts
     RETURN
-    
-    
-UART_RECV_ISR
-    ; Check if USART RX interrupt occurred
-    BANKSEL PIR1
-    BTFSS PIR1, RCIF
-    GOTO NOT_RX
 
-    MOVF COUNT, W
-    ADDWF BUFFER, W
-    MOVWF FSR
-    ; Read received byte into buffer
-    MOVF RCREG, W
-    MOVWF INDF
-    
-    INCF COUNT
-
-NOT_RX
-    RETFIE             ; Return from interrupt
   
 ; UART receive procedure
 ; input: COUNT: # bytes, BUFFER: address of buffer to receive bytes
@@ -55,7 +37,7 @@ UART_RECV
     CLRF COUNT
 WAIT_RX
     MOVF COUNT, W
-    SUBWF NUM_BYTES, W
+    SUBWF UART_NUM_BYTES, W
     BTFSS STATUS, Z
     GOTO WAIT_RX
     
@@ -79,7 +61,7 @@ SEND_LOOP
 
     INCF COUNT, F
     MOVF COUNT, W
-    SUBWF NUM_BYTES, W
+    SUBWF UART_NUM_BYTES, W
     BTFSS STATUS, Z
     GOTO SEND_LOOP
     

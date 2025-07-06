@@ -5,8 +5,11 @@
 
     LIST        p=16f877a
     INCLUDE    <p16f877a.INC>
-    INCLUDE     <LCD_DRIVER.INC>
+    INCLUDE    <LCD_DRIVER.INC>
     INCLUDE    <BCD_TO_LCD.INC> ; Include BCD to LCD conversion routines
+    INCLUDE   <binary_to_bcd.inc> ; Include delay routines
+    INCLUDE    <bcd_to_binary.inc> ; Include BCD to Binary conversion routines
+    INCLUDE    <UART.inc> ; Include UART routines
 
     __CONFIG _XT_OSC & _WDT_OFF & _PWRTE_OFF & _CP_OFF & _LVP_OFF & _BODEN_OFF  
 
@@ -27,16 +30,24 @@ INT_VECT     code    0x0004
 
 BUTTON      EQU 1         ; button flag bit
 TIMER       EQU 0         ; timer flag bit
+
+; State definitions
+STATE_FIRST_NUM   EQU 0    ; Inputting first number
+STATE_SECOND_NUM  EQU 1    ; Inputting second number
+STATE_RESULT      EQU 2    ; Showing result
 MYDATA       UDATA                  ; Start uninitialized RAM section
 
     cblock 0x20
         INDEX
+        INDEX_TEMP
         TEMP_CHAR
+        TEMP_CHAR1 ; Temporary character for LCD display
+        TEMP_CHAR2 ; Temporary character for LCD displays
         loop_counter
         button_pressed
         flags               ; Flags for button and timer
-        mod2_ting
         led_status          ; LED on/off status for debugging
+        state               ; Current state: 0=first_num, 1=second_num, 2=result
         W_TEMP              ; For interrupt context save
         STATUS_TEMP         ; For interrupt context save
         timer_h             ; Timer1 high preset value
@@ -46,8 +57,8 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         number_2_bcd      :6 ; BCD representation of number 2
         number_1_binary   :5 ; Binary representation of number 1
         number_2_binary   :5 ; Binary representation of number 2
-        number_1_char     :12 ; ASCII representation of number 1
-        number_2_char     :12 ; ASCII representation of number 2
+        result_binary   :5 ; Binary representation of result
+        result_bcd      :6 ; BCD representation of result
     endc
 
 
@@ -61,6 +72,7 @@ MAIN_PROG    CODE                   ; Let linker place code
 
 setup:
     clrf button_pressed ; Initialize button_pressed to 0
+    clrf state          ; Initialize state to STATE_FIRST_NUM (0)
     call LCD_INIT          ; Initialize LCD    
     call print_first_message ; Print initial messages
 
@@ -77,15 +89,16 @@ setup:
     call LCD_CLR          ; Clear LCD
 
     call print_number_message ; Print "Number 1"
+
     call LCD_L2           ; Move cursor to 2nd line  
     call init_ports       ; Initialize ports and interrupts
+    call INIT_UART ; Initialize UART for debugging
       ; Initialize flags
     clrf flags         ; Clear flags
     clrf led_status       ; Clear LED status
-
-    call print_number ; Print the number in button_pressed
     clrf INDEX
-
+    call print_number ; Print the number in button_pressed
+    call LCD_L2 ; Move cursor to 2nd line, column 0
 main_loop:
     ; Check if timer flag is set (1 second elapsed)
     btfsc flags, TIMER ; Check timer flag
@@ -100,57 +113,204 @@ main_loop:
 handle_timer:
     ; Clear the timer flag
     bcf flags, TIMER
-    INCF INDEX, F         ; Increment index for visual effect
+    
+    ; Check current state and handle accordingly
+    movf state, W
+    sublw STATE_FIRST_NUM
+    btfsc STATUS, Z
+    goto handle_timer_first_num
+    
+    movf state, W
+    sublw STATE_SECOND_NUM
+    btfsc STATUS, Z
+    goto handle_timer_second_num
+    
+    ; If in result state, just return
+    return
 
-    MoveCursorReg 2, INDEX ; Move cursor to row 2, column
+handle_timer_first_num:
+    ; Check if we've reached 12 digits for first number
+    movf INDEX, W
+    sublw D'12'
+    btfsc STATUS, Z
+    goto transition_to_second_num
+    
+    ; Use common timer handler with first number BCD base address
+    movlw number_1_bcd
+    call handle_timer_common
+    return
 
-    ; call the function to save tempchar here
+handle_timer_second_num:
+    ; Check if we've reached 12 digits for second number
+    movf INDEX, W
+    sublw D'12'
+    btfsc STATUS, Z
+    goto transition_to_result
+    
+    ; Use common timer handler with second number BCD base address
+    movlw number_2_bcd
+    call handle_timer_common
+    return
+
+; Common timer handler for both numbers
+; Input: W contains the base address for BCD storage (number_1_bcd or number_2_bcd)
+handle_timer_common:
+    movwf TEMP_CHAR ; Store base address temporarily
+    
+    ; Continue with number input
+    movf INDEX, w
+    addlw 1 ; Increment INDEX for next character
+    movwf INDEX_TEMP ; Store incremented index in INDEX_TEMP
+    MoveCursorReg 2, INDEX_TEMP; Move cursor to row 2, column INDEX+1
+
+    ; Save digit to number storage
     movf button_pressed, W
-    addlw '0' ; Convert to ASCII
-
-    btss INDEX, 1 ; Check if index is odd
-    goto iseven ; Save button_pressed to TEMP_CHAR for display
+    btfss INDEX, 0 ; Check if index is odd
+    goto save_even ; Save button_pressed for number
     ; Convert button_pressed to BCD and display on LCD
+    movwf TEMP_CHAR2
     RRF INDEX, W ; Rotate right to divide by 2
-    ; get base address
-    addwf number_1_bcd, W ; Add to base address of number_1_bcd
-    movwf WREG ; Store in WREG 
+    addwf TEMP_CHAR, W ; Add to base address
+    movwf FSR ; Store in FSR
     
     call CONVERT_CHAR_TO_BCD ; Convert button_pressed to BCD and display on LCD
-    goto skip_ting ; Skip saving to TEMP_CHAR1
-iseven:
-    ; If index is odd, save to TEMP_CHAR1
+    goto skip_save
+save_even:
+    ; If index is even, save to TEMP_CHAR1
     movwf TEMP_CHAR1 ; Save button_pressed to TEMP_CHAR for display
 
-skip_ting:
-    clrf button_pressed ; Reset button pressed count   `
+skip_save:
+    incf INDEX, F ; Increment index for next character
+    return
+
+transition_to_second_num:
+
+    ; Set function parameter
+    movlw number_1_bcd
+    movwf INPUT_BASE_ADDR
+
+    movlw number_1_binary ; Set binary output base address
+    movwf OUTPUT_BASE_ADDR
+    
+    ; Call BCD to Binary conversion
+    call BCD_TO_BIN_FUNCTION
+
+
+    clrf button_pressed ; Reset button pressed count
+    ; Transition from first number to second number
+    movlw STATE_SECOND_NUM
+    movwf state
+    clrf INDEX              ; Reset index for second number
+    call LCD_CLR            ; Clear LCD
+    call print_number2_message ; Print "Number 2"
+    call LCD_L2             ; Move cursor to 2nd line
+    call print_number ; Print the number in button_pressed
+    call LCD_L2             ; Move cursor to 2nd line
+    return
+
+transition_to_result:
+
+    ; Set function parameter
+    movlw number_2_bcd
+    movwf INPUT_BASE_ADDR
+
+    movlw number_2_binary ; Set binary output base address
+    movwf OUTPUT_BASE_ADDR
+    
+    ; Call BCD to Binary conversion
+    call BCD_TO_BIN_FUNCTION
+
+    movlw number_1_binary ; Set first number binary base address
+    movwf BUFFER
+    movlw D'10' ; Set number of bytes to send
+    movwf UART_NUM_BYTES ; Set number of bytes to send via UART
+    call UART_SEND ; Send numbers via UART
+
+    movlw result_binary ; Set result binary base addres
+    movwf BUFFER
+    movlw D'5'
+    movwf UART_NUM_BYTES ; Set number of bytes to send via UART
+    call UART_RECV
+
+    ; Convert result to BCD
+    movlw result_binary ; Set binary input base address
+    movwf B2BCD_INPUT_BASE_ADDR
+    movlw result_bcd ; Set BCD output base address
+    movwf B2BCD_OUTPUT_BASE_ADDR
+    call BIN_TO_BCD_FUNCTION ; Convert binary result to BCD
+
+    ; Transition to result state
+    movlw STATE_RESULT
+    movwf state
+    call LCD_CLR            ; Clear LCD
+    call LCD_L1             ; Move to first line
+    call print_result_message ; Print result
+
+    call LCD_L2             ; Move cursor to 2nd line
+    clrf INDEX              ; Reset index for result display
+
+    movlw result_bcd ; Set result BCD base address
+    movwf WREG
+    call PRINT_BCD_TO_LCD
     return
 
 handle_button:
     ; Clear the button flag
     bcf flags, BUTTON    
+
+    ; Check current state and handle accordingly
+    movf state, W
+    sublw STATE_FIRST_NUM
+    btfsc STATUS, Z
+    goto handle_button_first_num
     
-    ; Visual indication of timer reset - move cursor to home position
-    movlw 0x02            ; LCD command: return home (cursor to position 0)
-    call LCDINS           ; Send command to LCD
+    movf state, W
+    sublw STATE_SECOND_NUM
+    btfsc STATUS, Z
+    goto handle_button_second_num
     
-    call LCD_CLR          ; Clear LCD
-    call print_number_message ; Print "Number 1"
-    call LCD_L2           ; Move cursor to 2nd line
+    movf state, W
+    sublw STATE_RESULT
+    btfsc STATUS, Z
+    goto handle_button_result
+    
+    return
+
+handle_button_first_num:
+    ; Handle button press during first number input
     call print_number     ; Print the number in button_pressed
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
+    return
+
+handle_button_second_num:
+    ; Handle button press during second number input
+    call print_number     ; Print the number in button_pressed
+    MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
+    return
+
+handle_button_result:
+    ; Handle button press when showing result - restart the process
+    movlw STATE_FIRST_NUM
+    movwf state
+    clrf INDEX              ; Reset index
+    clrf button_pressed     ; Reset button counter
+    call LCD_CLR            ; Clear LCD
+    call print_number_message ; Print "Number 1"
+    call LCD_L2             ; Move cursor to 2nd line
+    call print_number       ; Print the current button value
+    call LCD_L2             ; Move cursor to 2nd line
     return
 
 ;===============================================================================
 ; Print "Welcome to"
 ;===============================================================================
 print_welcome:
-    clrf INDEX
+    clrf INDEX_TEMP
     movlw HIGH(welcome_str)   ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_welcome_loop:
-    movf INDEX, W
+    movf INDEX_TEMP, W
     call welcome_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
@@ -162,19 +322,19 @@ print_welcome_loop:
 
 continue_welcome:
     call LCD_CHAR
-    incf INDEX, F
+    incf INDEX_TEMP, F
     goto print_welcome_loop
 
 ;===============================================================================
 ; Print "Division!"
 ;===============================================================================
 print_division:
-    clrf INDEX
+    clrf INDEX_TEMP
     movlw HIGH(division_str)  ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_division_loop:
-    movf INDEX, W
+    movf INDEX_TEMP, W
     call division_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
@@ -185,7 +345,7 @@ print_division_loop:
 
 continue_division:
     call LCD_CHAR
-    incf INDEX, F
+    incf INDEX_TEMP, F
     goto print_division_loop
 
 
@@ -208,12 +368,12 @@ print_first_message:
     return
 
 print_number_message:
-    clrf INDEX
+    clrf INDEX_TEMP
     movlw HIGH(number_str)    ; Set PCLATH for correct table page
     movwf PCLATH
 
 print_number_message_loop:
-    movf INDEX, W
+    movf INDEX_TEMP, W
     call number_str
     movwf TEMP_CHAR
     movf TEMP_CHAR, F
@@ -225,8 +385,50 @@ print_number_message_loop:
 
 continue_number_message:
     call LCD_CHAR
-    incf INDEX, F
+    incf INDEX_TEMP, F
     goto print_number_message_loop
+
+print_number2_message:
+    clrf INDEX_TEMP
+    movlw HIGH(number2_str)    ; Set PCLATH for correct table page
+    movwf PCLATH
+
+print_number2_message_loop:
+    movf INDEX_TEMP, W
+    call number2_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
+    goto continue_number2_message
+    clrf PCLATH
+    
+    return
+
+continue_number2_message:
+    call LCD_CHAR
+    incf INDEX_TEMP, F
+    goto print_number2_message_loop
+
+print_result_message:
+    clrf INDEX_TEMP
+    movlw HIGH(result_str)    ; Set PCLATH for correct table page
+    movwf PCLATH
+
+print_result_message_loop:
+    movf INDEX_TEMP, W
+    call result_str
+    movwf TEMP_CHAR
+    movf TEMP_CHAR, F
+    btfss STATUS, Z           ; If TEMP_CHAR == 0 → end of string
+    goto continue_result_message
+    clrf PCLATH
+    
+    return
+
+continue_result_message:
+    call LCD_CHAR
+    incf INDEX_TEMP, F
+    goto print_result_message_loop
 
 
 
@@ -240,16 +442,15 @@ continue_number_message:
 print_number:
     
     ; put the number of digits in w
-    movlw D'12' ; Assume maximum 12 digits to print
-    movwf loop_counter ; Initialize loop counter
+    movf INDEX, W ; Get the current index
+    sublw D'12' ; Calculate 12 - INDEX (original logic)
+    movwf loop_counter ; Store the number of digits to print in loop_counter
 
 print_number_loop:
-    ; move cursor to row1 index 0
-    
-    movf button_pressed, W ; Get the number to print
+    movf button_pressed, W ; Use current button_pressed value
     call LCD_CHARD ; convert to ascii
     CALL LCD_CHAR
-    DECFSZ loop_counter, F ; Decrement index
+    DECFSZ loop_counter, F ; Decrement remaining count
     goto print_number_loop ; Loop until all digits printed
     return
 
@@ -337,9 +538,22 @@ isr_handler:
     swapf STATUS, W         ; Swap STATUS to W
     movwf STATUS_TEMP       ; Save STATUS    ; Check for Timer1 overflow interrupt
     BANKSEL PIR1
-    btfss PIR1, TMR1IF      ; Check Timer1 overflow flag
-    goto check_button       ; If not set, check button interrupt
+    btfsc PIR1, TMR1IF      ; Check Timer1 overflow flag
+    goto timer_handler       ; If not set, check button interrupt
       ; Handle Timer1 overflow (0.25 second elapsed)
+
+    BANKSEL INTCON
+    btfsc INTCON, INTF      ; Check if external interrupt (button press) occurred
+    goto check_button        ; If set, handle button press
+
+    ; Check if USART RX interrupt occurred
+    BANKSEL PIR1
+    BTFSC PIR1, RCIF
+    goto UART_RECV_ISR       ; If USART RX interrupt, handle it
+
+    goto end_isr            ; If no relevant interrupt, just exit
+
+timer_handler
     bcf PIR1, TMR1IF        ; Clear Timer1 overflow flag
     call reset_timer1       ; Restart timer for next 0.25-second period
     
@@ -391,6 +605,22 @@ check_button:
     call DEL100             ; Short delay
     bcf PORTB, 1            ; Turn off LED
 
+    goto end_isr            ; Exit ISR
+
+
+UART_RECV_ISR:
+    MOVF COUNT, W
+    ADDWF BUFFER, W
+    MOVWF FSR
+    ; Read received byte into buffer
+    MOVF RCREG, W
+    MOVWF INDF
+    
+    INCF COUNT
+
+    goto end_isr
+
+
 end_isr:
     ; Restore context
     swapf STATUS_TEMP, W    ; Restore STATUS
@@ -419,6 +649,10 @@ number_str:
 number2_str:
     addwf PCL, F
     DT "Number 2", 0
+
+result_str:
+    addwf PCL, F
+    DT "Result:", 0
 
     END
 
