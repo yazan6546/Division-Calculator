@@ -64,7 +64,9 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         number_1_binary   :5 ; Binary representation of number 1
         number_2_binary   :5 ; Binary representation of number 2
         result_binary   :5 ; Binary representation of result
+        result_binary_decimal :5 ; Decimal representation of result
         result_bcd      :6 ; BCD representation of result
+        result_bcd_decimal :6 ; Decimal representation of result
     endc
 
 
