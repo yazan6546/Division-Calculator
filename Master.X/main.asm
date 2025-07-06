@@ -223,15 +223,18 @@ button_held_second_dec:
 
 
 handle_timer_first_num_int:
-    ; Check if we've reached 6 digits for first number integer part
-    movf INDEX, W
-    sublw D'5'
-    btfsc STATUS, Z
-    goto wrap_to_zero_first_int
-    
+
     ; Use common timer handler with first number BCD base address
     movlw number_1_bcd
     call handle_timer_common
+
+    ; Check if we've reached 6 digits for first number integer part
+    movf INDEX, W
+    sublw D'6'
+    btfsc STATUS, Z
+    goto wrap_to_zero_first_int
+    
+
     return
 
 wrap_to_zero_first_int:
@@ -241,15 +244,18 @@ wrap_to_zero_first_int:
     return
 
 handle_timer_first_num_dec:
-    ; Check if we've reached last decimal digit (INDEX == 11)
-    movf INDEX, W
-    sublw D'11'
-    btfsc STATUS, Z
-    goto wrap_to_six_first_dec
-    
+
     ; Use common timer handler with first number BCD base address
     movlw number_1_bcd
     call handle_timer_common
+
+    ; Check if we've reached last decimal digit (INDEX == 12)
+    movf INDEX, W
+    sublw D'12'
+    btfsc STATUS, Z
+    goto wrap_to_six_first_dec
+    
+    
     return
 
 wrap_to_six_first_dec:
@@ -260,15 +266,18 @@ wrap_to_six_first_dec:
     return
 
 handle_timer_second_num_int:
-    ; Check if we've reached 6 digits for second number integer part
-    movf INDEX, W
-    sublw D'5'
-    btfsc STATUS, Z
-    goto wrap_to_zero_second_int
-    
+
     ; Use common timer handler with second number BCD base address
     movlw number_2_bcd
     call handle_timer_common
+
+    ; Check if we've reached 6 digits for second number integer part
+    movf INDEX, W
+    sublw D'6'
+    btfsc STATUS, Z
+    goto wrap_to_zero_second_int
+    
+    
     return
 
 wrap_to_zero_second_int:
@@ -278,15 +287,18 @@ wrap_to_zero_second_int:
     return
 
 handle_timer_second_num_dec:
-    ; Check if we've reached last decimal digit (INDEX == 11)
-    movf INDEX, W
-    sublw D'11'
-    btfsc STATUS, Z
-    goto wrap_to_six_second_dec
-    
+
     ; Use common timer handler with second number BCD base address
     movlw number_2_bcd
     call handle_timer_common
+    
+    ; Check if we've reached last decimal digit (INDEX == 11)
+    movf INDEX, W
+    sublw D'12'
+    btfsc STATUS, Z
+    goto wrap_to_six_second_dec
+    
+    
     return
 
 wrap_to_six_second_dec:
