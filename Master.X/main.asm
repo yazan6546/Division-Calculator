@@ -472,7 +472,7 @@ transition_to_result:
 
     movlw result_binary ; Set result binary base addres
     movwf BUFFER
-    movlw D'5'
+    movlw D'10'
     movwf UART_NUM_BYTES ; Set number of bytes to send via UART
     call UART_RECV
 
@@ -482,6 +482,13 @@ transition_to_result:
     movlw result_bcd ; Set BCD output base address
     movwf B2BCD_OUTPUT_BASE_ADDR
     call BIN_TO_BCD_FUNCTION ; Convert binary result to BCD
+
+    ; Convert decimal part to BCD
+    movlw result_binary_decimal ; Set binary decimal input base address
+    movwf B2BCD_INPUT_BASE_ADDR
+    movlw result_bcd_decimal ; Set BCD decimal output base address
+    movwf B2BCD_OUTPUT_BASE_ADDR
+    call BIN_TO_BCD_FUNCTION ; Convert binary decimal result to BCD
 
     ; Transition to result state
     movlw STATE_RESULT
@@ -493,7 +500,17 @@ transition_to_result:
     call LCD_L2             ; Move cursor to 2nd line
     clrf INDEX              ; Reset index for result display
 
+    ; Print integer part
     movlw result_bcd ; Set result BCD base address
+    movwf WREG
+    call PRINT_BCD_TO_LCD
+    
+    ; Print decimal point
+    movlw '.'               ; Load decimal point character
+    call LCD_CHAR           ; Display decimal point
+    
+    ; Print decimal part
+    movlw result_bcd_decimal ; Set result decimal BCD base address
     movwf WREG
     call PRINT_BCD_TO_LCD
     return
