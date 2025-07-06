@@ -189,6 +189,7 @@ button_held_first_dec:
     movlw STATE_SECOND_NUM_INT
     movwf state
     clrf INDEX
+    clrf button_pressed ; Reset button pressed count
     call LCD_CLR
     call print_number2_message
     call LCD_L2
