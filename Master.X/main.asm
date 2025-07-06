@@ -30,6 +30,7 @@ INT_VECT     code    0x0004
 
 BUTTON      EQU 1         ; button flag bit
 TIMER       EQU 0         ; timer flag bit
+DECIMAL_FLAG EQU  2 ; decimal point flag bit
 
 ; State definitions
 STATE_FIRST_NUM   EQU 0    ; Inputting first number
@@ -97,6 +98,7 @@ setup:
     clrf flags         ; Clear flags
     clrf led_status       ; Clear LED status
     clrf INDEX
+    call LCD_L2 ; Move cursor to 2nd line, column 0
     call print_number ; Print the number in button_pressed
     call LCD_L2 ; Move cursor to 2nd line, column 0
 main_loop:
@@ -453,19 +455,27 @@ continue_result_message:
 ;===============================================================================
 
 print_number:
-    
+    bcf flags, DECIMAL_FLAG ; Clear decimal point flag
+
     ; put the number of digits in w
     movf INDEX, W ; Get the current index
     sublw D'12' ; Calculate 12 - INDEX (original logic)
     movwf loop_counter ; Store the number of digits to print in loop_counter
 
+    sublw D'6' ; Check if we are at the 6th digit
+    btfsc STATUS, Z ; If loop_counter == 6, we are at the decimal point position
+    bsf flags, DECIMAL_FLAG ; Set decimal point flag
+
 print_number_loop:
+    ; if decimal flag is set, we do not print decimal point, if not set, we proceed with cond
+    btfsc flags, DECIMAL_FLAG ; Check if decimal point flag is set
+    goto print_char ; If not set, just print character
+
     ; test if loop counter is 6 (decimal point position)
     movf loop_counter, W ; Get the current loop counter value
     sublw D'6' ; Check if we are at the 6th digit
     btfsc STATUS, Z ; If loop_counter == 6, we are at the decimal point position
     goto print_decimal_point ; If at 6th digit, print decimal point
-
 print_char:
 
     movf button_pressed, W ; Use current button_pressed value
@@ -479,7 +489,6 @@ print_decimal_point:
 
     ; Print decimal point at the 6th position
     movlw '.' ; Load decimal point character
-    call LCD_CHARD ; convert to ascii
     call LCD_CHAR ; Display decimal point
     goto print_char ; Continue printing remaining digits
 
@@ -686,3 +695,13 @@ result_str:
     END
 
 
+
+
+
+
+
+; i have to handle the looping again, in the first iteration, whatever is in button_pressed will be printed, but 
+; in the next iteration, whatever in memory should be printed, and button press should not cause any change in the other digits not yet reached
+; no change in saving mechanism should be implemented. What if the user skipped when the index is odd???????????????
+; this should be handled in save_number function, which is called in skip!!!!!!!!
+; i have to handle the looping thing first, then go into skip thing
