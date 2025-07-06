@@ -244,11 +244,18 @@ handle_timer_first_num_dec:
     movf INDEX, W
     sublw D'12'
     btfsc STATUS, Z
-    goto transition_to_second_num
+    goto wrap_to_six_first_dec
     
     ; Use common timer handler with first number BCD base address
     movlw number_1_bcd
     call handle_timer_common
+    return
+
+wrap_to_six_first_dec:
+    ; Wrap INDEX back to 6 for decimal part (decimal point position)
+    movlw D'6'
+    movwf INDEX
+    MoveCursorReg 2, INDEX
     return
 
 handle_timer_second_num_int:
@@ -274,11 +281,18 @@ handle_timer_second_num_dec:
     movf INDEX, W
     sublw D'12'
     btfsc STATUS, Z
-    goto button_held_second_dec
+    goto wrap_to_six_second_dec
     
     ; Use common timer handler with second number BCD base address
     movlw number_2_bcd
     call handle_timer_common
+    return
+
+wrap_to_six_second_dec:
+    ; Wrap INDEX back to 6 for decimal part (decimal point position)
+    movlw D'6'
+    movwf INDEX
+    MoveCursorReg 2, INDEX
     return
 
 ; Common timer handler for both numbers
