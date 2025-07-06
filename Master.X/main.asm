@@ -33,9 +33,13 @@ TIMER       EQU 0         ; timer flag bit
 DECIMAL_FLAG EQU  2 ; decimal point flag bit
 
 ; State definitions
-STATE_FIRST_NUM   EQU 0    ; Inputting first number
-STATE_SECOND_NUM  EQU 1    ; Inputting second number
-STATE_RESULT      EQU 2    ; Showing result
+STATE_FIRST_NUM_INT   EQU 0    ; Inputting first number
+STATE_FIRST_NUM_DEC   EQU 1    ; Inputting first number
+
+STATE_SECOND_NUM_INT  EQU 2    ; Inputting second number
+STATE_SECOND_NUM_DEC  EQU 3    ; Inputting second number
+
+STATE_RESULT      EQU 4    ; Showing result
 MYDATA       UDATA                  ; Start uninitialized RAM section
 
     cblock 0x20
@@ -118,33 +122,116 @@ handle_timer:
 
     btfsc PORTB, 0 ; Check if button is pressed
     goto button_not_pressed ; If not pressed, skip handling
-    movlw D'6'
-    movwf INDEX ; skip to 6th digit
-    MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
-    return         ; If not pressed, just return
-    ; Reset timer and overflow counter
+    
+    ; Button is held - handle state transitions
+    goto handle_button_held
 
 button_not_pressed:    
     ; Check current state and handle accordingly
     movf state, W
-    sublw STATE_FIRST_NUM
+    sublw STATE_FIRST_NUM_INT
     btfsc STATUS, Z
-    goto handle_timer_first_num
+    goto handle_timer_first_num_int
     
     movf state, W
-    sublw STATE_SECOND_NUM
+    sublw STATE_FIRST_NUM_DEC
     btfsc STATUS, Z
-    goto handle_timer_second_num
-exit_handle_timer:
+    goto handle_timer_first_num_dec
+    
+    movf state, W
+    sublw STATE_SECOND_NUM_INT
+    btfsc STATUS, Z
+    goto handle_timer_second_num_int
+    
+    movf state, W
+    sublw STATE_SECOND_NUM_DEC
+    btfsc STATUS, Z
+    goto handle_timer_second_num_dec
     
     ; If in result state, just return
     return
 
+handle_button_held:
+    ; Handle button held based on current state
+    movf state, W
+    sublw STATE_FIRST_NUM_INT
+    btfsc STATUS, Z
+    goto button_held_first_int
+    
+    movf state, W
+    sublw STATE_FIRST_NUM_DEC
+    btfsc STATUS, Z
+    goto button_held_first_dec
+    
+    movf state, W
+    sublw STATE_SECOND_NUM_INT
+    btfsc STATUS, Z
+    goto button_held_second_int
+    
+    movf state, W
+    sublw STATE_SECOND_NUM_DEC
+    btfsc STATUS, Z
+    goto button_held_second_dec
+    
+    return
+
+button_held_first_int:
+    ; Transition from first number integer to decimal part
+    movlw STATE_FIRST_NUM_DEC
+    movwf state
+    movlw D'6'
+    movwf INDEX
+    MoveCursorReg 2, INDEX
+    return
+
+button_held_first_dec:
+    ; Transition from first number decimal to second number integer
+    movlw STATE_SECOND_NUM_INT
+    movwf state
+    clrf INDEX
+    call LCD_CLR
+    call print_number2_message
+    call LCD_L2
+    call print_number
+    call LCD_L2
+    return
+
+button_held_second_int:
+    ; Transition from second number integer to decimal part
+    movlw STATE_SECOND_NUM_DEC
+    movwf state
+    movlw D'6'
+    movwf INDEX
+    MoveCursorReg 2, INDEX
+    return
+
+button_held_second_dec:
+    ; Transition from second number decimal to result
+    goto transition_to_result
 
 
 
-handle_timer_first_num:
-    ; Check if we've reached 12 digits for first number
+
+handle_timer_first_num_int:
+    ; Check if we've reached 6 digits for first number integer part
+    movf INDEX, W
+    sublw D'5'
+    btfsc STATUS, Z
+    goto wrap_to_zero_first_int
+    
+    ; Use common timer handler with first number BCD base address
+    movlw number_1_bcd
+    call handle_timer_common
+    return
+
+wrap_to_zero_first_int:
+    ; Wrap INDEX back to 0 for integer part without incrementing further
+    clrf INDEX
+    MoveCursorReg 2, INDEX
+    return
+
+handle_timer_first_num_dec:
+    ; Check if we've reached 12 digits for first number decimal part
     movf INDEX, W
     sublw D'12'
     btfsc STATUS, Z
@@ -155,8 +242,26 @@ handle_timer_first_num:
     call handle_timer_common
     return
 
-handle_timer_second_num:
-    ; Check if we've reached 12 digits for second number
+handle_timer_second_num_int:
+    ; Check if we've reached 6 digits for second number integer part
+    movf INDEX, W
+    sublw D'5'
+    btfsc STATUS, Z
+    goto wrap_to_zero_second_int
+    
+    ; Use common timer handler with second number BCD base address
+    movlw number_2_bcd
+    call handle_timer_common
+    return
+
+wrap_to_zero_second_int:
+    ; Wrap INDEX back to 0 for integer part without incrementing further
+    clrf INDEX
+    MoveCursorReg 2, INDEX
+    return
+
+handle_timer_second_num_dec:
+    ; Check if we've reached 12 digits for second number decimal part
     movf INDEX, W
     sublw D'12'
     btfsc STATUS, Z
@@ -213,7 +318,7 @@ transition_to_second_num:
 
     clrf button_pressed ; Reset button pressed count
     ; Transition from first number to second number
-    movlw STATE_SECOND_NUM
+    movlw STATE_SECOND_NUM_INT
     movwf state
     clrf INDEX              ; Reset index for second number
     call LCD_CLR            ; Clear LCD
@@ -275,12 +380,22 @@ handle_button:
 
     ; Check current state and handle accordingly
     movf state, W
-    sublw STATE_FIRST_NUM
+    sublw STATE_FIRST_NUM_INT
     btfsc STATUS, Z
     goto handle_button_first_num
     
     movf state, W
-    sublw STATE_SECOND_NUM
+    sublw STATE_FIRST_NUM_DEC
+    btfsc STATUS, Z
+    goto handle_button_first_num
+    
+    movf state, W
+    sublw STATE_SECOND_NUM_INT
+    btfsc STATUS, Z
+    goto handle_button_second_num
+    
+    movf state, W
+    sublw STATE_SECOND_NUM_DEC
     btfsc STATUS, Z
     goto handle_button_second_num
     
@@ -305,7 +420,7 @@ handle_button_second_num:
 
 handle_button_result:
     ; Handle button press when showing result - restart the process
-    movlw STATE_FIRST_NUM
+    movlw STATE_FIRST_NUM_INT
     movwf state
     clrf INDEX              ; Reset index
     clrf button_pressed     ; Reset button counter
