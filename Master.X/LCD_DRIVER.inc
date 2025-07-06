@@ -13,6 +13,7 @@ LCD_CODE	code
 		CNTB ;DELAY COUNTER B
 		CNTC ;DELAY COUNTER C
 		LCDTEMP ;TEMP VAR FOR CHAR / INSRUCTION
+		TEMP_TING
 	ENDC
 
 ;LCD INITIALIZATION (4 BIT MODE)
@@ -83,7 +84,7 @@ LCDINS:
 	ANDLW 0xF0 ;CLEAR LSB OF W REG (THE LSB OF W REG IS THE LSB OF THE INSTRUCTION)
 	MOVWF LCD_PORT ;PUT INSTAUCTION'S MSB TO THE DATA BUS
 	BCF LCD_PORT, LCD_RS ;SET RS PIN LOW TO SELECT INSTRUCTION REGISTER
-	CALL PULSE_E ;PULSE LCD_E
+	CALL PULSE_E ;PULSE LCD_EF
 
 	SWAPF LCDTEMP, W ;SWAP LSB AND MSB
 
@@ -208,6 +209,18 @@ DEL_0:
 
 ; Improved macro to move cursor to row/column with register
 MoveCursorReg macro row, colreg
+
+	movf colreg, w         ; Get column register value
+	movwf TEMP_TING ; Save it temporarily
+
+	; check if colreg is >= 6 (decimal digits)
+	; if colreg >= 6, we increment by one to skip the decimal point position
+	movlw 0x06            ; Load W with 6
+	subwf colreg, w       ; Subtract 6 from colreg (W = colreg - 6)
+	btfss STATUS, C       ; Skip if colreg >= 6 (C=1 means colreg >= 6)
+	goto $+2              ; If colreg < 6, don't increment (skip next instruction)
+	incf colreg, f        ; If colreg >= 6, increment to skip decimal point
+
     ; Get row base address (assembly time check)
     if row == 1
         movlw 0x80            ; Row 1 base address
@@ -220,9 +233,9 @@ MoveCursorReg macro row, colreg
     
     ; Runtime bounds checking for column (0-15)
     movf colreg, w
-    sublw .11               ; W = 11 - colreg  
-    btfss STATUS, C           ; Skip if colreg <= 11
-    movlw .11                 ; If colreg > 11, use 11
+    sublw .12               ; W = 12 - colreg  
+    btfss STATUS, C           ; Skip if colreg <= 12
+    movlw .12                 ; If colreg > 12, use 12
     btfss STATUS, C
     movwf colreg              ; Update colreg with max value
     
@@ -230,4 +243,7 @@ MoveCursorReg macro row, colreg
     movf colreg, w
     addwf LCDTEMP, w          ; W = base + colreg
     call LCDINS               ; Send to LCD
+
+	movf TEMP_TING, w ; Restore column value
+	movwf colreg ; Restore column register
     endm
