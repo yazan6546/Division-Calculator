@@ -27,7 +27,8 @@ CBLOCK 0x20
     BARG1   
     BARG2  
     BARG3   
-    BARG4    
+    BARG4
+    BREG
 ENDC
  
  
@@ -109,14 +110,16 @@ PREP_OPERANDS_ASCII
     
    
 START
+    
+REPEAT
     CALL INIT_UART ; initialize UART
-;REPEAT    
     CALL PREP_OPERANDS ; prepare operands
     MOVLW D'10'
     MOVWF NUM_BYTES
     MOVLW 0x25
     MOVWF BUFFER
     CALL UART_SEND ; send operands
+    INCF AARG0
     BANKSEL BUFFER
     MOVLW 0x20
     MOVWF BUFFER
