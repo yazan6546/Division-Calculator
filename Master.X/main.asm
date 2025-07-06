@@ -31,6 +31,7 @@ INT_VECT     code    0x0004
 BUTTON      EQU 1         ; button flag bit
 TIMER       EQU 0         ; timer flag bit
 DECIMAL_FLAG EQU  2 ; decimal point flag bit
+LOOP_STATE   EQU 3        ; loop state flag bit (0=first pass, 1=looping)
 
 ; State definitions
 STATE_FIRST_NUM_INT   EQU 0    ; Inputting first number
@@ -189,6 +190,7 @@ button_held_first_dec:
     movlw STATE_SECOND_NUM_INT
     movwf state
     clrf INDEX
+    bcf flags, LOOP_STATE   ; Clear loop state for new number
     clrf button_pressed ; Reset button pressed count
     call LCD_CLR
     call print_number2_message
@@ -223,8 +225,11 @@ button_held_second_dec:
 
 
 handle_timer_first_num_int:
-
-    ; Use common timer handler with first number BCD base address
+    ; Check if in loop state - if so, just increment cursor
+    btfsc flags, LOOP_STATE
+    goto first_int_loop_mode
+    
+    ; First pass - use common timer handler to save values
     movlw number_1_bcd
     call handle_timer_common
 
@@ -233,41 +238,67 @@ handle_timer_first_num_int:
     sublw D'6'
     btfsc STATUS, Z
     goto wrap_to_zero_first_int
-    
+    return
 
+first_int_loop_mode:
+    ; Loop mode - just increment cursor without saving
+    incf INDEX, F
+    ; Check for wrap
+    movf INDEX, W
+    sublw D'6'
+    btfsc STATUS, Z
+    goto wrap_to_zero_first_int
+    MoveCursorReg 2, INDEX
     return
 
 wrap_to_zero_first_int:
-    ; Wrap INDEX back to 0 for integer part without incrementing further
+    ; Wrap INDEX back to 0 for integer part and set loop state
     clrf INDEX
+    bsf flags, LOOP_STATE   ; Set loop state flag
     MoveCursorReg 2, INDEX
     return
 
 handle_timer_first_num_dec:
-
-    ; Use common timer handler with first number BCD base address
+    ; Check if in loop state - if so, just increment cursor
+    btfsc flags, LOOP_STATE
+    goto first_dec_loop_mode
+    
+    ; First pass - use common timer handler to save values
     movlw number_1_bcd
     call handle_timer_common
 
-    ; Check if we've reached last decimal digit (INDEX == 12)
+    ; Check if we've reached last decimal digit (INDEX == 11)
     movf INDEX, W
-    sublw D'12'
+    sublw D'11'
     btfsc STATUS, Z
     goto wrap_to_six_first_dec
-    
-    
+    return
+
+first_dec_loop_mode:
+    ; Loop mode - just increment cursor without saving
+    incf INDEX, F
+    ; Check for wrap
+    movf INDEX, W
+    sublw D'11'
+    btfsc STATUS, Z
+    goto wrap_to_six_first_dec
+    MoveCursorReg 2, INDEX
     return
 
 wrap_to_six_first_dec:
-    ; Wrap INDEX back to 6 for decimal part (decimal point position)
+    ; Wrap INDEX back to 6 for decimal part and set loop state
     movlw D'6'
     movwf INDEX
+    bsf flags, LOOP_STATE   ; Set loop state flag
     MoveCursorReg 2, INDEX
     return
 
 handle_timer_second_num_int:
-
-    ; Use common timer handler with second number BCD base address
+    ; Check if in loop state - if so, just increment cursor
+    btfsc flags, LOOP_STATE
+    goto second_int_loop_mode
+    
+    ; First pass - use common timer handler to save values
     movlw number_2_bcd
     call handle_timer_common
 
@@ -276,35 +307,58 @@ handle_timer_second_num_int:
     sublw D'6'
     btfsc STATUS, Z
     goto wrap_to_zero_second_int
-    
-    
+    return
+
+second_int_loop_mode:
+    ; Loop mode - just increment cursor without saving
+    incf INDEX, F
+    ; Check for wrap
+    movf INDEX, W
+    sublw D'6'
+    btfsc STATUS, Z
+    goto wrap_to_zero_second_int
+    MoveCursorReg 2, INDEX
     return
 
 wrap_to_zero_second_int:
-    ; Wrap INDEX back to 0 for integer part without incrementing further
+    ; Wrap INDEX back to 0 for integer part and set loop state
     clrf INDEX
+    bsf flags, LOOP_STATE   ; Set loop state flag
     MoveCursorReg 2, INDEX
     return
 
 handle_timer_second_num_dec:
-
-    ; Use common timer handler with second number BCD base address
+    ; Check if in loop state - if so, just increment cursor
+    btfsc flags, LOOP_STATE
+    goto second_dec_loop_mode
+    
+    ; First pass - use common timer handler to save values
     movlw number_2_bcd
     call handle_timer_common
     
     ; Check if we've reached last decimal digit (INDEX == 11)
     movf INDEX, W
-    sublw D'12'
+    sublw D'11'
     btfsc STATUS, Z
     goto wrap_to_six_second_dec
-    
-    
+    return
+
+second_dec_loop_mode:
+    ; Loop mode - just increment cursor without saving
+    incf INDEX, F
+    ; Check for wrap
+    movf INDEX, W
+    sublw D'11'
+    btfsc STATUS, Z
+    goto wrap_to_six_second_dec
+    MoveCursorReg 2, INDEX
     return
 
 wrap_to_six_second_dec:
-    ; Wrap INDEX back to 6 for decimal part (decimal point position)
+    ; Wrap INDEX back to 6 for decimal part and set loop state
     movlw D'6'
     movwf INDEX
+    bsf flags, LOOP_STATE   ; Set loop state flag
     MoveCursorReg 2, INDEX
     return
 
@@ -444,12 +498,16 @@ handle_button:
 
 handle_button_first_num:
     ; Handle button press during first number input
+    ; Clear loop state to allow overwriting value
+    bcf flags, LOOP_STATE
     call print_number     ; Print the number in button_pressed
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
     return
 
 handle_button_second_num:
     ; Handle button press during second number input
+    ; Clear loop state to allow overwriting value
+    bcf flags, LOOP_STATE
     call print_number     ; Print the number in button_pressed
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
     return
@@ -459,6 +517,7 @@ handle_button_result:
     movlw STATE_FIRST_NUM_INT
     movwf state
     clrf INDEX              ; Reset index
+    bcf flags, LOOP_STATE   ; Clear loop state for fresh start
     clrf button_pressed     ; Reset button counter
     call LCD_CLR            ; Clear LCD
     call print_number_message ; Print "Number 1"
@@ -850,9 +909,8 @@ result_str:
 
 
 
-
 ; i have to handle the looping again, in the first iteration, whatever is in button_pressed will be printed, but 
 ; in the next iteration, whatever in memory should be printed, and button press should not cause any change in the other digits not yet reached
 ; no change in saving mechanism should be implemented. What if the user skipped when the index is odd???????????????
 ; this should be handled in save_number function, which is called in skip!!!!!!!!
-; i have to handle the looping thing first, then go into skip thing
+; i have to handle the looping thing first, then g into skip thing
