@@ -220,14 +220,8 @@ button_held_first_dec:
     movlw number_1_bcd
     movwf TEMP_CHAR ; Save current number in TEMP_CHAR
     call save_remaining_digits
-    clrf INDEX
     bcf flags, LOOP_STATE   ; Clear loop state for new number
-    clrf button_pressed ; Reset button pressed count
-    call LCD_CLR
-    call print_number2_message
-    call LCD_L2
-    call print_number
-    call LCD_L2
+    call transition_to_second_num
 
     return
 
