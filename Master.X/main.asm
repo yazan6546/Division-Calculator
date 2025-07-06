@@ -207,6 +207,15 @@ button_held_second_int:
 
 button_held_second_dec:
     ; Transition from second number decimal to result
+    call LCD_CLR
+    call LCD_L1
+    movlw '='
+    call LCD_CHAR
+    call DEL250
+    call DEL250
+    call DEL250
+    call DEL250
+
     goto transition_to_result
 
 
@@ -265,7 +274,7 @@ handle_timer_second_num_dec:
     movf INDEX, W
     sublw D'12'
     btfsc STATUS, Z
-    goto transition_to_result
+    goto button_held_second_dec
     
     ; Use common timer handler with second number BCD base address
     movlw number_2_bcd
@@ -329,7 +338,7 @@ transition_to_second_num:
     return
 
 transition_to_result:
-
+    
     ; Set function parameter
     movlw number_2_bcd
     movwf INPUT_BASE_ADDR
