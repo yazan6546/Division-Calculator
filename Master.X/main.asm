@@ -269,7 +269,7 @@ handle_timer_first_num_dec:
 
     ; Check if we've reached last decimal digit (INDEX == 11)
     movf INDEX, W
-    sublw D'11'
+    sublw D'12'
     btfsc STATUS, Z
     goto wrap_to_six_first_dec
     return
@@ -279,7 +279,7 @@ first_dec_loop_mode:
     incf INDEX, F
     ; Check for wrap
     movf INDEX, W
-    sublw D'11'
+    sublw D'12'
     btfsc STATUS, Z
     goto wrap_to_six_first_dec
     MoveCursorReg 2, INDEX
@@ -338,7 +338,7 @@ handle_timer_second_num_dec:
     
     ; Check if we've reached last decimal digit (INDEX == 11)
     movf INDEX, W
-    sublw D'11'
+    sublw D'12'
     btfsc STATUS, Z
     goto wrap_to_six_second_dec
     return
@@ -348,7 +348,7 @@ second_dec_loop_mode:
     incf INDEX, F
     ; Check for wrap
     movf INDEX, W
-    sublw D'11'
+    sublw D'12'
     btfsc STATUS, Z
     goto wrap_to_six_second_dec
     MoveCursorReg 2, INDEX
@@ -903,14 +903,3 @@ result_str:
     DT "Result:", 0
 
     END
-
-
-
-
-
-
-; i have to handle the looping again, in the first iteration, whatever is in button_pressed will be printed, but 
-; in the next iteration, whatever in memory should be printed, and button press should not cause any change in the other digits not yet reached
-; no change in saving mechanism should be implemented. What if the user skipped when the index is odd???????????????
-; this should be handled in save_number function, which is called in skip!!!!!!!!
-; i have to handle the looping thing first, then g into skip thing
