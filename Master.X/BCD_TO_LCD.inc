@@ -172,3 +172,48 @@ INIT_BCD:
 
     RETURN
 
+; Convert BCD to ASCII for LCD display (Simple version without leading zero suppression)
+; Input: WREG contains BCD byte
+; Output: Displays the BCD value on the LCD
+PRINT_ONE_BCD_SIMPLE:
+    ; Save the original BCD byte
+    MOVWF TEMP_CHAR2
+    
+    ; Print high nibble (tens digit)
+    SWAPF TEMP_CHAR2, W ; Swap nibbles to get tens digit
+    ANDLW 0x0F          ; Mask to get only the high nibble
+    ADDLW '0'           ; Convert to ASCII
+    CALL LCD_CHAR
+    
+    ; Print low nibble (ones digit)
+    MOVF TEMP_CHAR2, W  ; Get original byte
+    ANDLW 0x0F          ; Mask to get the units digit
+    ADDLW '0'           ; Convert to ASCII
+    CALL LCD_CHAR
+    
+    RETURN
+
+; Print 6 bytes of BCD values to LCD (Simple version)
+; Input: WREG contains address of initial BCD byte
+; Output: Displays all BCD values on the LCD
+PRINT_BCD_SIMPLE:
+    MOVLW 3             ; Number of BCD bytes to print
+    MOVWF TEMP_CHAR1    ; Store count in TEMP_CHAR1
+    
+    ; Load the BCD byte from the address in WREG
+    MOVF WREG, W
+    MOVWF FSR
+    
+PRINT_BCD_SIMPLE_LOOP:
+    MOVF INDF, W        ; Load BCD byte into W
+    CALL PRINT_ONE_BCD_SIMPLE ; Print the BCD byte
+    
+    ; Increment FSR to point to the next BCD byte
+    INCF FSR, F
+    ; Decrement the byte count
+    DECFSZ TEMP_CHAR1, F
+    ; If not zero, repeat the loop
+    GOTO PRINT_BCD_SIMPLE_LOOP
+    
+    RETURN
+

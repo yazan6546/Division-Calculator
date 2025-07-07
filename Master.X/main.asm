@@ -613,9 +613,19 @@ handle_button_result_result:
     call LCD_L1             ; Move to first line
     call print_number_message ; Print "Number 1"
     call LCD_L2             ; Move cursor to 2nd line
+    clrf INDEX              ; Reset index for number 1 display
     movlw number_1_bcd      ; Set number 1 BCD base address
     movwf WREG
-    call PRINT_BCD_TO_LCD
+    call PRINT_BCD_SIMPLE   ; Use simple printing without leading zero suppression
+
+    movlw '.'
+    call LCD_CHAR           ; Display decimal point 
+
+    movlw number_1_bcd      ; Load base address
+    addlw 3                 ; Add offset for decimal part
+    movwf WREG
+    call PRINT_BCD_SIMPLE   ; Print the decimal part of number 1
+    
     return
 
 handle_button_result_number_1:
@@ -626,9 +636,17 @@ handle_button_result_number_1:
     call LCD_L1             ; Move to first line
     call print_number2_message ; Print "Number 2"
     call LCD_L2             ; Move cursor to 2nd line
-    movlw number_2_bcd      ; Set number 2 BCD base address
+    movlw number_2_bcd      ; Set number 1 BCD base address
     movwf WREG
-    call PRINT_BCD_TO_LCD
+    call PRINT_BCD_SIMPLE   ; Use simple printing without leading zero suppression
+
+    movlw '.'
+    call LCD_CHAR           ; Display decimal point 
+
+    movlw number_2_bcd      ; Load base address
+    addlw 3                 ; Add offset for decimal part
+    movwf WREG
+    call PRINT_BCD_SIMPLE   ; Print the decimal part of number 2
     return
 
 handle_button_result_number_2:
@@ -639,7 +657,9 @@ handle_button_result_number_2:
     call LCD_L1             ; Move to first line
     call print_result_message ; Print result
     call LCD_L2             ; Move cursor to 2nd line
+    clrf INDEX              ; Reset index for result display
     
+
     ; Print integer part
     movlw result_bcd ; Set result BCD base address
     movwf WREG
@@ -707,17 +727,17 @@ continue_division:
 print_first_message:
     movlw 4        
     movwf loop_counter   ; Initialize loop counter
-    loop_message:
-        call LCD_CLR           ; Clear LCD
-        call DEL100
-        call LCD_L1            ; Move cursor to 1st line
-        call print_welcome     ; Print "Welcome to"
-        call LCD_L2            ; Move cursor to 2nd line
-        call print_division    ; Print "Division!"
-        call DEL250
-        call DEL250 ; Delay for effect
-        decf loop_counter, F  ; Decrement loop counter
-        bnz loop_message       ; If loop_counter == 0, exit loop
+loop_message:
+    call LCD_CLR           ; Clear LCD
+    call DEL100
+    call LCD_L1            ; Move cursor to 1st line
+    call print_welcome     ; Print "Welcome to"
+    call LCD_L2            ; Move cursor to 2nd line
+    call print_division    ; Print "Division!"
+    call DEL250
+    call DEL250 ; Delay for effect
+    decf loop_counter, F  ; Decrement loop counter
+    bnz loop_message       ; If loop_counter == 0, exit loop
 
     return
 
