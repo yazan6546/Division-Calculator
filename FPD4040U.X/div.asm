@@ -19,7 +19,7 @@ MAIN_PROG CODE                      ; let linker place main program
 PREP_OPERANDS
     ; initialization 0x002540BE40, 0x00000F4240 => 0x0000000271
     ; first operand
-    MOVLW 0x40
+    MOVLW 0x41
     MOVWF AARG0
     MOVLW 0xBE
     MOVWF AARG1
@@ -31,9 +31,9 @@ PREP_OPERANDS
     MOVWF AARG4
     
     ; second operand
-    MOVLW 0x11
+    MOVLW 0x40
     MOVWF BARG0
-    MOVLW 0x11
+    MOVLW 0x42
     MOVWF BARG1
     MOVLW 0x0F
     MOVWF BARG2
@@ -52,37 +52,66 @@ CLEAR
     CLRF RES2
     CLRF RES3
     CLRF RES4
-    CLRF RES0F
-    CLRF RES1F
-    CLRF RES2F
-    CLRF RES3F
-    CLRF RES4F
     RETURN
     
 
-   
+; -------------- DIV PROCEDURE --------------
+DIV    
+SUB_LOOP
+    ; test if dividend got to zero
+    CALL TEST_IF_ZERO
+    BTFSC STATUS, Z
+    GOTO EXIT_DIV
+    ; if not repeat subtraction
+    CALL SUB
+    ; test if divided got negative
+    BTFSS STATUS, C
+    GOTO NEG
+    ; if not, increment quotient
+    INCF RES0
+    BTFSC STATUS, Z
+    INCF RES1
+    BTFSC STATUS, Z
+    INCF RES2
+    BTFSC STATUS, Z
+    INCF RES3
+    BTFSC STATUS, Z
+    INCF RES4
+    
+    GOTO SUB_LOOP
+
+; remainder is calculated here
+NEG
+    ; correct the result
+    CALL ADD
+          
+EXIT_DIV
+    RETURN
+    
     
 
 ; -------------- MAIN --------------
 START
-   
-REPEAT
-    CALL INIT_UART ; initialize UART
+    CALL INIT_UART
+;REPEAT
     BANKSEL NUM_BYTES
     MOVLW D'10'
     MOVWF NUM_BYTES
-    MOVLW 0x2A
+    MOVLW 0x25
     MOVWF BUFFER
     CALL UART_RECV
     CALL CLEAR
-   
     CALL DIV
     BANKSEL BUFFER
     MOVLW 0x20
     MOVWF BUFFER
 
+    BANKSEL NUM_BYTES
+    MOVLW D'5'
+    MOVWF NUM_BYTES
+
     CALL UART_SEND
-    GOTO REPEAT
+;    GOTO REPEAT
     
     
 
