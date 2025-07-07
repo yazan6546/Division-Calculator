@@ -8,7 +8,7 @@
 ; Add code section for MPASM object file generation
 LCD_CODE	code
  
-	CBLOCK 0x70
+	CBLOCK 0x74
 		CNTA ;DELAY COUNTER A
 		CNTB ;DELAY COUNTER B
 		CNTC ;DELAY COUNTER C
