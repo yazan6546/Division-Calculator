@@ -29,21 +29,80 @@ PRINT_ONE_BCD_TO_LCD:
 
 ; Print 6 bytes of bcd values to LCD
 ; Input: WREG contains address of initial BCD byte
-; Output: Displays the BCD values on the LCD
+; Output: Displays the BCD values on the LCD without leading zeros
 PRINT_BCD_TO_LCD:
     MOVLW 6 ; Number of BCD bytes to print
-    MOVWF NUM_BYTES ; Store count in TEMP_CHAR1
+    MOVWF NUM_BYTES ; Store count in NUM_BYTES
 
     ; Load the BCD byte from the address in WREG
     MOVF WREG, W
     MOVWF FSR
     
-PRINT_BCD_LOOP:
+    ; Initialize leading zero flag (0 = still in leading zeros, 1 = found non-zero)
+    CLRF TEMP_CHAR1 ; Use TEMP_CHAR1 as leading zero flag
     
+PRINT_BCD_LOOP:
     MOVF INDF, W ; Load BCD byte into W
     MOVWF WREG ; Store it back in WREG for processing
-    ; Call the conversion routine to print the BCD byte
-    CALL PRINT_ONE_BCD_TO_LCD
+    
+    ; Process high nibble (tens digit)
+    SWAPF WREG, W ; Get high nibble
+    ANDLW 0x0F ; Mask to get only the nibble
+    MOVWF TEMP_CHAR2 ; Store high nibble temporarily
+    
+    ; Check if high nibble is zero and we're still in leading zeros
+    MOVF TEMP_CHAR2, F ; Test if high nibble is zero
+    BTFSS STATUS, Z ; Skip if zero
+    GOTO PRINT_HIGH_NIBBLE ; Not zero, print it
+    
+    ; High nibble is zero - check if we're still in leading zeros
+    MOVF TEMP_CHAR1, F ; Test leading zero flag
+    BTFSC STATUS, Z ; If flag is 0 (still leading zeros)
+    GOTO SKIP_HIGH_NIBBLE ; Skip this zero digit
+    
+    ; We've found non-zero before, so print this zero
+    GOTO PRINT_HIGH_NIBBLE
+    
+PRINT_HIGH_NIBBLE:
+    ; Set flag to indicate we've found a non-zero digit
+    MOVLW 1
+    MOVWF TEMP_CHAR1 ; Set leading zero flag
+    
+    ; Print the high nibble
+    MOVF TEMP_CHAR2, W
+    ADDLW '0' ; Convert to ASCII
+    CALL LCD_CHAR
+    
+SKIP_HIGH_NIBBLE:
+    ; Process low nibble (ones digit)
+    MOVF WREG, W ; Get original byte
+    ANDLW 0x0F ; Mask to get low nibble
+    MOVWF TEMP_CHAR2 ; Store low nibble temporarily
+    
+    ; Check if low nibble is zero and we're still in leading zeros
+    MOVF TEMP_CHAR2, F ; Test if low nibble is zero
+    BTFSS STATUS, Z ; Skip if zero
+    GOTO PRINT_LOW_NIBBLE ; Not zero, print it
+    
+    ; Low nibble is zero - check if we're still in leading zeros
+    MOVF TEMP_CHAR1, F ; Test leading zero flag
+    BTFSC STATUS, Z ; If flag is 0 (still leading zeros)
+    GOTO SKIP_LOW_NIBBLE ; Skip this zero digit
+    
+    ; We've found non-zero before, so print this zero
+    GOTO PRINT_LOW_NIBBLE
+    
+PRINT_LOW_NIBBLE:
+    ; Set flag to indicate we've found a non-zero digit
+    MOVLW 1
+    MOVWF TEMP_CHAR1 ; Set leading zero flag
+    
+    ; Print the low nibble
+    MOVF TEMP_CHAR2, W
+    ADDLW '0' ; Convert to ASCII
+    CALL LCD_CHAR
+    
+SKIP_LOW_NIBBLE:
     ; Increment FSR to point to the next BCD byte
     INCF FSR, F
     ; Decrement the byte count
@@ -51,6 +110,16 @@ PRINT_BCD_LOOP:
     ; If not zero, repeat the loop
     GOTO PRINT_BCD_LOOP
 
+    ; Check if we printed nothing (all zeros case)
+    MOVF TEMP_CHAR1, F ; Test if we printed anything
+    BTFSS STATUS, Z ; If we printed something, we're done
+    GOTO PRINT_BCD_DONE
+    
+    ; All zeros case - print a single "0"
+    MOVLW '0'
+    CALL LCD_CHAR
+
+PRINT_BCD_DONE:
     ; End of BCD_TO_LCD code
     RETURN
 
