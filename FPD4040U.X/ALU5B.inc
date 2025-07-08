@@ -10,14 +10,14 @@ CBLOCK 0x20
     RES1F
     RES2F
     RES3F
-    RES4F
+    RES4F ; 0x2A
     AARG0   
     AARG1   
     AARG2   
     AARG3   
     AARG4   
-    BARG0   
-    BARG1   
+    BARG0   ; 0x2F
+    BARG1   ; 0x30
     BARG2  
     BARG3   
     BARG4
@@ -26,6 +26,20 @@ CBLOCK 0x20
     REM2
     REM3
     REM4
+    
+ENDC
+    
+CBLOCK 0x60
+    REM5
+    REM6
+    REM7
+    REM8
+    REM9
+    AARG5
+    AARG6 
+    AARG7 
+    AARG8 
+    AARG9
 ENDC
     
 MUL_CNT EQU 0x50
@@ -97,6 +111,39 @@ ADD_R
     INCFSZ REM4, W
     ADDWF AARG4
     
+    ; sixth byte
+    MOVF REM5, W
+    BTFSC STATUS, C
+    INCFSZ REM5, W
+    ADDWF AARG5
+    
+    ; seventh byte
+    MOVF REM6, W
+    BTFSC STATUS, C
+    INCFSZ REM6, W
+    ADDWF AARG6
+    
+    ; eighth byte
+    MOVF REM7, W
+    BTFSC STATUS, C
+    INCFSZ REM7, W
+    ADDWF AARG7
+    
+    ; ninth byte
+    MOVF REM8, W
+    BTFSC STATUS, C
+    INCFSZ REM8, W
+    ADDWF AARG8
+    
+    ; tenth byte
+    MOVF REM9, W
+    BTFSC STATUS, C
+    INCFSZ REM9, W
+    ADDWF AARG9
+   
+    
+    
+    
     RETURN    
     
     
@@ -132,6 +179,24 @@ SUB
     
     RETURN
     
+FIX_REM
+    MOVLW D'1'
+    
+    SUBWF AARG5
+    
+    BTFSS STATUS, C
+    SUBWF AARG6
+    BTFSS STATUS, C
+    SUBWF AARG7
+    BTFSS STATUS, C
+    SUBWF AARG8
+    BTFSS STATUS, C
+    SUBWF AARG9
+    
+    RETURN
+    
+    
+    
     
 TEST_IF_ZERO
     MOVF    AARG0,W
@@ -142,6 +207,15 @@ TEST_IF_ZERO
     
     RETURN
     
+TEST_IF_ZERO_EXT
+    MOVF    AARG5,W
+    IORWF   AARG6,W
+    IORWF   AARG7,W
+    IORWF   AARG8,W
+    IORWF   AARG9,W
+    
+    RETURN    
+    
    
     ; -------------- DIV PROCEDURE --------------
 DIV
@@ -149,10 +223,25 @@ DIV
 SUB_LOOP
     ; test if dividend got to zero
     CALL TEST_IF_ZERO
+    BTFSS STATUS, Z
+    GOTO DO_NOT_EXIT
+    
+    BTFSS REM_HANDLE, 0
+    GOTO EXIT_DIV
+    
+    CALL TEST_IF_ZERO_EXT
     BTFSC STATUS, Z
     GOTO EXIT_DIV
     ; if not repeat subtraction
+DO_NOT_EXIT    
     CALL SUB
+    BTFSS REM_HANDLE, 0
+    GOTO SKIP_REM
+    
+    BTFSS STATUS, C
+    CALL FIX_REM
+
+SKIP_REM
     ; test if divided got negative
     BTFSS STATUS, C
     GOTO NEG
@@ -213,6 +302,16 @@ MUL_BY_M
     MOVWF REM3
     MOVF AARG4, W
     MOVWF REM4
+    MOVF AARG5, W
+    MOVWF REM5
+    MOVF AARG6, W
+    MOVWF REM6
+    MOVF AARG7, W
+    MOVWF REM7
+    MOVF AARG8, W
+    MOVWF REM8
+    MOVF AARG9, W
+    MOVWF REM9
     CALL MUL
     DECFSZ MUL_TIMES
     
