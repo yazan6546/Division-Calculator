@@ -40,7 +40,9 @@ STATE_FIRST_NUM_DEC   EQU 1    ; Inputting first number
 STATE_SECOND_NUM_INT  EQU 2    ; Inputting second number
 STATE_SECOND_NUM_DEC  EQU 3    ; Inputting second number
 
-STATE_RESULT      EQU 4    ; Showing result
+STATE_RESULT_RESULT      EQU 4    ; Showing result
+STATE_RESULT_NUMBER_1    EQU 5    ; Showing first number
+STATE_RESULT_NUMBER_2    EQU 6    ; Showing second number
 MYDATA       UDATA                  ; Start uninitialized RAM section
 
     cblock 0x20
@@ -64,7 +66,9 @@ MYDATA       UDATA                  ; Start uninitialized RAM section
         number_1_binary   :5 ; Binary representation of number 1
         number_2_binary   :5 ; Binary representation of number 2
         result_binary   :5 ; Binary representation of result
+        result_binary_decimal :5 ; Decimal representation of result
         result_bcd      :6 ; BCD representation of result
+        result_bcd_decimal :6 ; Decimal representation of result
     endc
 
 
@@ -174,6 +178,36 @@ handle_button_held:
     btfsc STATUS, Z
     goto button_held_second_dec
     
+    ; Handle button held in result states - return to first number input
+    movf state, W
+    sublw STATE_RESULT_RESULT
+    btfsc STATUS, Z
+    goto button_held_result_states
+    
+    movf state, W
+    sublw STATE_RESULT_NUMBER_1
+    btfsc STATUS, Z
+    goto button_held_result_states
+    
+    movf state, W
+    sublw STATE_RESULT_NUMBER_2
+    btfsc STATUS, Z
+    goto button_held_result_states
+    
+    return
+
+button_held_result_states:
+    ; Return to first number input when button is held in any result state
+    movlw STATE_FIRST_NUM_INT
+    movwf state
+    clrf INDEX              ; Reset index
+    bcf flags, LOOP_STATE   ; Clear loop state for fresh start
+    clrf button_pressed     ; Reset button counter
+    call LCD_CLR            ; Clear LCD
+    call print_number_message ; Print "Number 1"
+    call LCD_L2             ; Move cursor to 2nd line
+    call print_number       ; Print the current button value
+    call LCD_L2             ; Move cursor to 2nd line
     return
 
 
@@ -470,7 +504,7 @@ transition_to_result:
 
     movlw result_binary ; Set result binary base addres
     movwf BUFFER
-    movlw D'5'
+    movlw D'10'
     movwf UART_NUM_BYTES ; Set number of bytes to send via UART
     call UART_RECV
 
@@ -481,8 +515,15 @@ transition_to_result:
     movwf B2BCD_OUTPUT_BASE_ADDR
     call BIN_TO_BCD_FUNCTION ; Convert binary result to BCD
 
+    ; Convert decimal part to BCD
+    movlw result_binary_decimal ; Set binary decimal input base address
+    movwf B2BCD_INPUT_BASE_ADDR
+    movlw result_bcd_decimal ; Set BCD decimal output base address
+    movwf B2BCD_OUTPUT_BASE_ADDR
+    call BIN_TO_BCD_FUNCTION ; Convert binary decimal result to BCD
+
     ; Transition to result state
-    movlw STATE_RESULT
+    movlw STATE_RESULT_RESULT
     movwf state
     call LCD_CLR            ; Clear LCD
     call LCD_L1             ; Move to first line
@@ -491,7 +532,17 @@ transition_to_result:
     call LCD_L2             ; Move cursor to 2nd line
     clrf INDEX              ; Reset index for result display
 
+    ; Print integer part
     movlw result_bcd ; Set result BCD base address
+    movwf WREG
+    call PRINT_BCD_TO_LCD
+    
+    ; Print decimal point
+    movlw '.'               ; Load decimal point character
+    call LCD_CHAR           ; Display decimal point
+    
+    ; Print decimal part
+    movlw result_bcd_decimal ; Set result decimal BCD base address
     movwf WREG
     call PRINT_BCD_TO_LCD
     return
@@ -522,9 +573,19 @@ handle_button:
     goto handle_button_second_num
     
     movf state, W
-    sublw STATE_RESULT
+    sublw STATE_RESULT_RESULT
     btfsc STATUS, Z
-    goto handle_button_result
+    goto handle_button_result_result
+    
+    movf state, W
+    sublw STATE_RESULT_NUMBER_1
+    btfsc STATUS, Z
+    goto handle_button_result_number_1
+    
+    movf state, W
+    sublw STATE_RESULT_NUMBER_2
+    btfsc STATUS, Z
+    goto handle_button_result_number_2
     
     return
 
@@ -544,18 +605,74 @@ handle_button_second_num:
     MoveCursorReg 2, INDEX ; Move cursor to row 2, column INDEX
     return
 
-handle_button_result:
-    ; Handle button press when showing result - restart the process
-    movlw STATE_FIRST_NUM_INT
+handle_button_result_result:
+    ; Navigate from result to number 1 display
+    movlw STATE_RESULT_NUMBER_1
     movwf state
-    clrf INDEX              ; Reset index
-    bcf flags, LOOP_STATE   ; Clear loop state for fresh start
-    clrf button_pressed     ; Reset button counter
     call LCD_CLR            ; Clear LCD
+    call LCD_L1             ; Move to first line
     call print_number_message ; Print "Number 1"
     call LCD_L2             ; Move cursor to 2nd line
-    call print_number       ; Print the current button value
+    clrf INDEX              ; Reset index for number 1 display
+    movlw number_1_bcd      ; Set number 1 BCD base address
+    movwf WREG
+    call PRINT_BCD_SIMPLE   ; Use simple printing without leading zero suppression
+
+    movlw '.'
+    call LCD_CHAR           ; Display decimal point 
+
+    movlw number_1_bcd      ; Load base address
+    addlw 3                 ; Add offset for decimal part
+    movwf WREG
+    call PRINT_BCD_SIMPLE   ; Print the decimal part of number 1
+    
+    return
+
+handle_button_result_number_1:
+    ; Navigate from number 1 to number 2 display
+    movlw STATE_RESULT_NUMBER_2
+    movwf state
+    call LCD_CLR            ; Clear LCD
+    call LCD_L1             ; Move to first line
+    call print_number2_message ; Print "Number 2"
     call LCD_L2             ; Move cursor to 2nd line
+    movlw number_2_bcd      ; Set number 1 BCD base address
+    movwf WREG
+    call PRINT_BCD_SIMPLE   ; Use simple printing without leading zero suppression
+
+    movlw '.'
+    call LCD_CHAR           ; Display decimal point 
+
+    movlw number_2_bcd      ; Load base address
+    addlw 3                 ; Add offset for decimal part
+    movwf WREG
+    call PRINT_BCD_SIMPLE   ; Print the decimal part of number 2
+    return
+
+handle_button_result_number_2:
+    ; Navigate from number 2 back to result display
+    movlw STATE_RESULT_RESULT
+    movwf state
+    call LCD_CLR            ; Clear LCD
+    call LCD_L1             ; Move to first line
+    call print_result_message ; Print result
+    call LCD_L2             ; Move cursor to 2nd line
+    clrf INDEX              ; Reset index for result display
+    
+
+    ; Print integer part
+    movlw result_bcd ; Set result BCD base address
+    movwf WREG
+    call PRINT_BCD_TO_LCD
+    
+    ; Print decimal point
+    movlw '.'               ; Load decimal point character
+    call LCD_CHAR           ; Display decimal point
+    
+    ; Print decimal part
+    movlw result_bcd_decimal ; Set result decimal BCD base address
+    movwf WREG
+    call PRINT_BCD_TO_LCD
     return
 
 ;===============================================================================
@@ -610,17 +727,17 @@ continue_division:
 print_first_message:
     movlw 4        
     movwf loop_counter   ; Initialize loop counter
-    loop_message:
-        call LCD_CLR           ; Clear LCD
-        call DEL100
-        call LCD_L1            ; Move cursor to 1st line
-        call print_welcome     ; Print "Welcome to"
-        call LCD_L2            ; Move cursor to 2nd line
-        call print_division    ; Print "Division!"
-        call DEL250
-        call DEL250 ; Delay for effect
-        decf loop_counter, F  ; Decrement loop counter
-        bnz loop_message       ; If loop_counter == 0, exit loop
+loop_message:
+    call LCD_CLR           ; Clear LCD
+    call DEL100
+    call LCD_L1            ; Move cursor to 1st line
+    call print_welcome     ; Print "Welcome to"
+    call LCD_L2            ; Move cursor to 2nd line
+    call print_division    ; Print "Division!"
+    call DEL250
+    call DEL250 ; Delay for effect
+    decf loop_counter, F  ; Decrement loop counter
+    bnz loop_message       ; If loop_counter == 0, exit loop
 
     return
 
